@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/webhook",
+      "dest": "/api/webhook.js"
+    },
+    {
+      "src": "/payment-sheet",
+      "dest": "/api/payment-sheet.js"
+    },
+    {
+      "src": "/send-notification",
+      "dest": "/api/send-notification.js"
+    }
+  ]
+}
