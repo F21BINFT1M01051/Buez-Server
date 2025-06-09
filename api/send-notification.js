@@ -17,7 +17,7 @@ module.exports = async (req, res) => {
     console.log("Push receipts:", receipts);
     res.send("Notification sent!");
   } catch (error) {
-    console.error("Notification error:", error);
+    console.log("Notification error:", error);
     res.status(500).send("Failed to send notification");
   }
 };

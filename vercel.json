@@ -8,15 +8,15 @@
   ],
   "routes": [
     {
-      "src": "/webhook",
+      "src": "/api/webhook",
       "dest": "/api/webhook.js"
     },
     {
-      "src": "/payment-sheet",
+      "src": "/api/payment-sheet",
       "dest": "/api/payment-sheet.js"
     },
     {
-      "src": "/send-notification",
+      "src": "/api/send-notification",
       "dest": "/api/send-notification.js"
     }
   ]
