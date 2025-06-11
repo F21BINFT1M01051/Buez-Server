@@ -1,25 +1,24 @@
 const stripe = require("../stripe-server");
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+  if (req.method === "POST") {
+    const { email } = req.body;
 
-  const { amount, userId } = req.body;
-
-  const customer = await stripe.customers.create();
-  const ephemeralKey = await stripe.ephemeralKeys.create(
-    { customer: customer.id },
-    { apiVersion: "2024-12-18.acacia" }
-  );
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amount * 100,
-    currency: "usd",
-    customer: customer.id,
-    metadata: { userId },
-  });
-
-  return res.status(200).json({
-    customer: customer.id,
-    ephemeralKey: ephemeralKey.secret,
-    paymentIntent: paymentIntent.client_secret,
-  });
+    try {
+      const customer = await stripe.customers.create({ email });
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customer.id,
+        payment_method_types: ["card"],
+      });
+      res.status(200).json({
+        setupIntentClientSecret: setupIntent.client_secret,
+        customerId: customer.id,
+      });
+    } catch (error) {
+      console.error("SetupIntent Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  } else {
+    res.status(405).json({ message: "Method Not Allowed" });
+  }
 };

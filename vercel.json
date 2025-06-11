@@ -16,6 +16,10 @@
       "dest": "/api/payment-sheet.js"
     },
     {
+      "src": "/api/create-subscription",
+      "dest": "/api/create-subscription.js"
+    },
+    {
       "src": "/api/send-notification",
       "dest": "/api/send-notification.js"
     }
