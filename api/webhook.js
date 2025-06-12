@@ -1,39 +1,50 @@
 const stripe = require("../stripe-server");
-const { buffer } = require("micro"); // micro is built-in with Vercel deployments
-const { saveSubscription } = require("../subscription.service");
+const { buffer } = require("micro"); // For Vercel
 
 export const config = {
   api: {
-    bodyParser: false, // Required for Stripe
+    bodyParser: false,
   },
 };
 
 module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
+  }
 
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const sig = req.headers["stripe-signature"];
 
   let event;
+
   try {
-    const buf = await buffer(req); // ✅ Get raw body
-    event = stripe.webhooks.constructEvent(buf, sig, endpointSecret); // ✅ Use raw buffer here
+    const buf = await buffer(req);
+    event = stripe.webhooks.constructEvent(buf, sig, endpointSecret);
   } catch (err) {
-    console.log("Webhook error", err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  switch (event.type) {
-    case "invoice.payment_succeeded":
-      try {
-        console.log("Invoice succeeded:", event.data.object);
+  try {
+    switch (event.type) {
+      case "invoice.payment_succeeded":
+        console.log("✅ invoice.payment_succeeded:", event.data.object);
         await saveSubscription(req, res, event.data.object);
-      } catch (saveErr) {
-        console.error("saveSubscription error:", saveErr.message);
-      }
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
+        break;
 
-  res.status(200).send("Received");
+      case "customer.subscription.created":
+        console.log("✅ Subscription created:", event.data.object);
+        await saveSubscription(req, res, event.data.object);
+        // Optional: You can also save or log this event if needed
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.status(200).send("Webhook received");
+  } catch (err) {
+    console.error("Webhook handler failed:", err.message);
+    res.status(500).send("Webhook handler failed");
+  }
 };
