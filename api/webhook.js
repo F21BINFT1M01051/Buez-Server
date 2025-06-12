@@ -35,7 +35,6 @@ module.exports = async (req, res) => {
       case "customer.subscription.created":
         console.log("✅ Subscription created:", event.data.object);
         await saveSubscription(req, res, event.data.object);
-        // Optional: You can also save or log this event if needed
         break;
 
       default:
