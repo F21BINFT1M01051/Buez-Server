@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
       // ✅ Create subscription with 14-day trial
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
-        items: [{ price: 'price_1RYu67Iqafrl1dqSYbsDzjIa' }],
+        items: [{ price: "price_1RYu67Iqafrl1dqSYbsDzjIa" }],
         default_payment_method: paymentMethod,
         trial_period_days: 14,
         expand: ["latest_invoice"],
@@ -36,20 +36,22 @@ module.exports = async (req, res) => {
       console.log("Subscription object:", subscription);
 
       // Get trial end date (if trial is active)
+      const trialStart = subscription.trial_start;
       const trialEnd = subscription.trial_end;
-      const periodEndTimestamp = trialEnd * 1000;
+
+      const trialStartDate = new Date(trialStart * 1000).toISOString();
+      const trialEndDate = new Date(trialEnd * 1000).toISOString();
 
       res.status(200).json({
         success: true,
         subscriptionId: subscription.id,
-        periodEndTimestamp,
+        trialStartDate,
+        trialEndDate,
       });
-
     } catch (err) {
       console.error("Subscription Error:", err);
       res.status(500).json({ success: false, message: err.message });
     }
-
   } else {
     res.status(405).json({ message: "Method Not Allowed" });
   }
