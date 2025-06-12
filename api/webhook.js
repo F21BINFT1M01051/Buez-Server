@@ -25,9 +25,12 @@ module.exports = async (req, res) => {
 
   switch (event.type) {
     case "invoice.payment_succeeded":
-      console.log("Invoice succeeded:", event.data.object);
-      await saveSubscription(req, res, event.data.object);
-      break;
+      try {
+        console.log("Invoice succeeded:", event.data.object);
+        await saveSubscription(req, res, event.data.object);
+      } catch (saveErr) {
+        console.error("saveSubscription error:", saveErr.message);
+      }
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
