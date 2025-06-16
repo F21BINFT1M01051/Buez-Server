@@ -47,6 +47,8 @@ module.exports = async (req, res) => {
         subscriptionId: subscription.id,
         trialStartDate,
         trialEndDate,
+        currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
       });
     } catch (err) {
       console.error("Subscription Error:", err);
