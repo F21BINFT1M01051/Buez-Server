@@ -19,7 +19,11 @@
       "src": "/api/create-subscription",
       "dest": "/api/create-subscription.js"
     },
-     {
+    {
+      "src": "/api/withoutTrial-subscription",
+      "dest": "/api/withoutTrial-subscription.js"
+    },
+    {
       "src": "/api/cancel-subscription",
       "dest": "/api/cancel-subscription.js"
     },
