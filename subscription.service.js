@@ -1,65 +1,71 @@
-const { Timestamp, updateDoc } = require('firebase-admin/firestore');
-const { admin, auth, db } = require('./firebaseAdmin');
+const { Timestamp } = require("firebase-admin/firestore");
+const { admin, auth, db } = require("./firebaseAdmin");
+const stripe = require("./stripe-server"); // Ensure this is configured
 
 async function saveSubscription(req, res, invoice) {
-	const userId = invoice.metadata.userId; // Stripe Customer ID
-	const subscriptionId = invoice.id;
-	const amountPaid = invoice.amount / 100; // Convert cents to dollars
-	const currency = invoice.currency;
-	const createdAt = new Date(invoice.created * 1000); // Convert UNIX timestamp to Date
-	const planId = invoice?.lines?.data[0]?.plan?.id || null;
-	const planInterval = invoice?.lines?.data[0]?.plan?.interval || null;
-	const productId = invoice?.lines?.data[0]?.plan?.product || null;
-	const status = invoice.status;
+  const userId = invoice.metadata.userId;
+  const subscriptionId = invoice.subscription || invoice.id;
+  const amountPaid = invoice.amount_paid / 100;
+  const currency = invoice.currency;
+  const createdAt = new Date(invoice.created * 1000);
+  const planId = invoice?.lines?.data[0]?.plan?.id || null;
+  const planInterval = invoice?.lines?.data[0]?.plan?.interval || null;
+  const productId = invoice?.lines?.data[0]?.plan?.product || null;
+  const status = invoice.status;
 
-	console.log('request', {
-		userId,
-		subscriptionId,
-		amountPaid,
-		currency,
-		createdAt,
-		planId,
-		planInterval,
-		productId,
-		status,
-	});
-	try {
-		await db.collection('subscriptions').doc(subscriptionId).set({
-			userId,
-			subscriptionId,
-			amountPaid,
-			currency,
-			createdAt,
-			planId,
-			planInterval,
-			productId,
-			status: status,
-		});
+  try {
+    // 🔁 Fetch full subscription object to get period dates
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-		await db
-			.collection('users')
-			.doc(userId)
-			.update({
-				subscription: {
-					subscriptionDate: Timestamp.now(),
-					subscriptionId,
-					amountPaid,
-					currency,
-					createdAt,
-					planId,
-					planInterval,
-					productId,
-					status: 'active',
-				},
-			});
+    const now = Math.floor(Date.now() / 1000);
+    const isTrial = subscription.trial_end && subscription.trial_end > now;
 
-		console.log(`Subscription ${subscriptionId} for User ${userId} saved successfully.`);
-	} catch (error) {
-		console.error('Error saving subscription:', error);
-		return res.status(500).send('Internal Server Error');
-	}
+    const periodStart = new Date(subscription.current_period_start * 1000);
+    const periodEnd = new Date(subscription.current_period_end * 1000);
 
-	res.json({ received: true });
+    // Save to subscriptions collection
+    await db.collection("subscriptions").doc(subscriptionId).set({
+      userId,
+      subscriptionId,
+      amountPaid,
+      currency,
+      createdAt,
+      planId,
+      planInterval,
+      productId,
+      status,
+      periodStart,
+      periodEnd,
+    });
+
+    // ✅ Update user doc with relevant fields
+    await db
+      .collection("users")
+      .doc(userId)
+      .update({
+        isSubscribed: true,
+        isFreeTrial: isTrial,
+        subscriptionStart: periodStart,
+        subscriptionEnd: periodEnd,
+        subscription: {
+          subscriptionDate: Timestamp.now(),
+          subscriptionId,
+          amountPaid,
+          currency,
+          createdAt,
+          planId,
+          planInterval,
+          productId,
+          status: "active",
+        },
+      });
+
+    console.log(`Subscription ${subscriptionId} for User ${userId} saved successfully.`);
+    res.json({ received: true });
+  } catch (error) {
+    console.error("Error saving subscription:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 }
 
 module.exports = { saveSubscription };
