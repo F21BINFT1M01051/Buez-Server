@@ -30,6 +30,10 @@
     {
       "src": "/api/send-notification",
       "dest": "/api/send-notification.js"
+    },
+    {
+      "src": "/api/instagram-login",
+      "dest": "/api/instagram-login.js"
     }
   ]
 }
