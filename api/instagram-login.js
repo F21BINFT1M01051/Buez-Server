@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     params.append("client_id", "1252851839667779");
     params.append("client_secret", "24cd6b58fcca9901615541acf5dbf46d");
     params.append("grant_type", "authorization_code");
-    params.append("redirect_uri", "https://auth.expo.io/@native-team/Buez");
+    params.append("redirect_uri", "https://buez-server-khaki.vercel.app/api/instagram-login");
     params.append("code", code);
 
     // Exchange code for access token
