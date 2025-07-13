@@ -1,3 +1,4 @@
+// instagram-login.js (Vercel Serverless Function)
 const axios = require("axios");
 
 module.exports = async (req, res) => {
@@ -8,31 +9,61 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const params = new URLSearchParams();
-    params.append("client_id", "1252851839667779");
-    params.append("client_secret", "24cd6b58fcca9901615541acf5dbf46d");
-    params.append("grant_type", "authorization_code");
-    params.append("redirect_uri", "https://buez-server-khaki.vercel.app/api/instagram-login");
-    params.append("code", code);
+    const FB_APP_ID = "716889610970681";
+    const FB_APP_SECRET = "2fc223957e3ccdcdfceb59311e226adc";
+    const REDIRECT_URI = "https://buez-server-khaki.vercel.app/api/instagram-login";
 
-    // Exchange code for access token
-    const tokenResponse = await axios.post("https://api.instagram.com/oauth/access_token", params);
-    const { access_token, user_id } = tokenResponse.data;
-
-    // Fetch profile
-    const userResponse = await axios.get(`https://graph.instagram.com/${user_id}`, {
+    // Step 1: Exchange code for access token
+    const tokenRes = await axios.get("https://graph.facebook.com/v18.0/oauth/access_token", {
       params: {
-        fields: "id,username,account_type",
-        access_token,
+        client_id: FB_APP_ID,
+        client_secret: FB_APP_SECRET,
+        redirect_uri: REDIRECT_URI,
+        code,
+      },
+    });
+
+    const access_token = tokenRes.data.access_token;
+
+    // Step 2: Get user’s pages
+    const pagesRes = await axios.get("https://graph.facebook.com/me/accounts", {
+      params: { access_token },
+    });
+
+    const page = pagesRes.data.data.find((p) => p.id); // pick first page
+    if (!page) {
+      return res.status(404).json({ error: "No Facebook pages found." });
+    }
+
+    const pageAccessToken = page.access_token;
+
+    // Step 3: Get Instagram Business Account ID from page
+    const pageDetailsRes = await axios.get(`https://graph.facebook.com/${page.id}`, {
+      params: {
+        fields: "instagram_business_account",
+        access_token: pageAccessToken,
+      },
+    });
+
+    const igAccount = pageDetailsRes.data.instagram_business_account;
+    if (!igAccount?.id) {
+      return res.status(404).json({ error: "No Instagram Business account linked to page." });
+    }
+
+    // Step 4: Get Instagram Business Profile
+    const igProfileRes = await axios.get(`https://graph.facebook.com/${igAccount.id}`, {
+      params: {
+        fields: "id,username,profile_picture_url",
+        access_token: pageAccessToken,
       },
     });
 
     return res.status(200).json({
-      access_token,
-      profile: userResponse.data,
+      access_token: pageAccessToken,
+      profile: igProfileRes.data,
     });
-  } catch (error) {
-    console.error("Instagram callback error:", error.response?.data || error.message);
-    return res.status(500).json({ error: "Failed to authenticate with Instagram" });
+  } catch (err) {
+    console.error("Instagram Business Login Error:", err.response?.data || err.message);
+    return res.status(500).json({ error: "Instagram business login failed." });
   }
 };
