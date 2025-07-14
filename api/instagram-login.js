@@ -24,13 +24,31 @@ module.exports = async (req, res) => {
     });
 
     const access_token = tokenRes.data.access_token;
-
     console.log("access_token......", access_token);
+
+    // ✅ Step 1.5: Check granted permissions
+    const permissionsRes = await axios.get("https://graph.facebook.com/me/permissions", {
+      params: { access_token },
+    });
+
+    console.log("permissionsRes......", JSON.stringify(permissionsRes.data, null, 2));
+
+    // Optional: Verify required permissions are granted
+    const requiredPermissions = ["pages_show_list", "instagram_basic"];
+    const grantedPermissions = permissionsRes.data.data
+      .filter((perm) => perm.status === "granted")
+      .map((perm) => perm.permission);
+
+    const missingPermissions = requiredPermissions.filter((perm) => !grantedPermissions.includes(perm));
+    if (missingPermissions.length > 0) {
+      return res.status(403).json({ error: "Missing required permissions", missingPermissions });
+    }
 
     // Step 2: Get user’s pages
     const pagesRes = await axios.get("https://graph.facebook.com/me/accounts", {
       params: { access_token },
     });
+
     console.log("pagesRes........", pagesRes);
     console.log("Pages Response:", JSON.stringify(pagesRes.data, null, 2));
 
