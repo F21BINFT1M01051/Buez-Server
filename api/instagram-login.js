@@ -29,6 +29,8 @@ module.exports = async (req, res) => {
     const pagesRes = await axios.get("https://graph.facebook.com/me/accounts", {
       params: { access_token },
     });
+    
+    console.log("Pages Response:", JSON.stringify(pagesRes.data, null, 2));
 
     const page = pagesRes.data.data.find((p) => p.id); // pick first page
     if (!page) {
