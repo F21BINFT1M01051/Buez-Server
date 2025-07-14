@@ -34,10 +34,8 @@ module.exports = async (req, res) => {
     console.log("permissionsRes......", JSON.stringify(permissionsRes.data, null, 2));
 
     // Optional: Verify required permissions are granted
-    const requiredPermissions = ["pages_show_list", "instagram_basic"];
-    const grantedPermissions = permissionsRes.data.data
-      .filter((perm) => perm.status === "granted")
-      .map((perm) => perm.permission);
+    const requiredPermissions = ["instagram_basic", "instagram_manage_insights", "pages_show_list", "pages_read_engagement"];
+    const grantedPermissions = permissionsRes.data.data.filter((perm) => perm.status === "granted").map((perm) => perm.permission);
 
     const missingPermissions = requiredPermissions.filter((perm) => !grantedPermissions.includes(perm));
     if (missingPermissions.length > 0) {
@@ -89,4 +87,3 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Instagram business login failed." });
   }
 };
-
