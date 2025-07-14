@@ -127,6 +127,7 @@ module.exports = async (req, res) => {
       },
     });
 
+    console.log('profileRes..........', profileRes)
     return res.status(200).json({
       access_token,
       profile: profileRes.data,
