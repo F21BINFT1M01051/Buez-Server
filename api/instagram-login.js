@@ -25,13 +25,13 @@ module.exports = async (req, res) => {
 
     const access_token = tokenRes.data.access_token;
 
-    console.log('access_token......', access_token)
+    console.log("access_token......", access_token);
 
     // Step 2: Get user’s pages
     const pagesRes = await axios.get("https://graph.facebook.com/me/accounts", {
       params: { access_token },
     });
-
+    console.log("pagesRes........", pagesRes);
     console.log("Pages Response:", JSON.stringify(pagesRes.data, null, 2));
 
     const page = pagesRes.data.data.find((p) => p.id); // pick first page
@@ -71,5 +71,3 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Instagram business login failed." });
   }
 };
-
-
