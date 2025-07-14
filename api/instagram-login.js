@@ -25,6 +25,8 @@ module.exports = async (req, res) => {
 
     const access_token = tokenRes.data.access_token;
 
+    console.log('access_token......', access_token)
+
     // Step 2: Get user’s pages
     const pagesRes = await axios.get("https://graph.facebook.com/me/accounts", {
       params: { access_token },
