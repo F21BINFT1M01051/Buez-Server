@@ -1,23 +1,38 @@
-const { Expo } = require("expo-server-sdk");
-const expo = new Expo();
 
-module.exports = async (req, res) => {
-  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+import { admin } from "../firebaseAdmin";
 
-  const { expoPushToken, title, message } = req.body;
-
-  if (!Expo.isExpoPushToken(expoPushToken)) {
-    return res.status(400).send("Invalid Expo push token");
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const receipts = await expo.sendPushNotificationsAsync([
-      { to: expoPushToken, sound: "default", title, body: message },
-    ]);
-    console.log("Push receipts:", receipts);
-    res.send("Notification sent!");
+    const { fcmToken, title, body } = req.body;
+
+    if (!fcmToken || !title || !body) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const message = {
+      token: fcmToken,
+      notification: { title, body },
+      android: {
+        priority: "high",
+        notification: {
+          channel_id: "default",
+          sound: "default",
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log("FCM send response:", response);
+
+    return res.status(200).json({ success: "Notification sent!", response });
   } catch (error) {
-    console.log("Notification error:", error);
-    res.status(500).send("Failed to send notification");
+    console.error("Error sending notification:", error);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: error.message });
   }
-};
+}
