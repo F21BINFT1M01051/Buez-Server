@@ -13,6 +13,8 @@ async function saveSubscription(req, res, invoice) {
   const productId = invoice?.lines?.data[0]?.plan?.product || null;
   const status = invoice.status;
 
+  console.log("id,..............",userId)
+
   try {
     // 🔁 Fetch full subscription object to get period dates
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -66,7 +68,7 @@ async function saveSubscription(req, res, invoice) {
     );
     res.json({ received: true });
   } catch (error) {
-    console.error("Error saving subscription:", error);
+    console.log("Error saving subscription:", error);
     return res.status(500).send("Internal Server Error");
   }
 }
