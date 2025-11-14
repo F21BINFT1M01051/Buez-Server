@@ -15,26 +15,29 @@ module.exports = async (req, res) => {
       return res.status(404).json({ success: false, message: "Subscription not found" });
     }
 
-    // 2️⃣ Get existing default payment method
-    const paymentMethod =
-      currentSub.default_payment_method ||
-      currentSub.items.data[0].price.recurring.payment_method;
+    // 2️⃣ Retrieve customer to get correct payment method
+    const customer = await stripe.customers.retrieve(customerId);
+
+    const paymentMethod = customer.invoice_settings.default_payment_method;
 
     if (!paymentMethod) {
-      return res.status(400).json({ success: false, message: "Payment method not found" });
+      return res.status(400).json({
+        success: false,
+        message: "Customer has no default payment method attached.",
+      });
     }
 
-    // 3️⃣ Cancel current monthly subscription at period end
+    // 3️⃣ Cancel monthly subscription at period end
     await stripe.subscriptions.update(currentSubscriptionId, {
       cancel_at_period_end: true,
     });
 
-    // 4️⃣ Create NEW yearly subscription
+    // 4️⃣ Create a new yearly subscription
     const yearlySub = await stripe.subscriptions.create({
       customer: customerId,
       items: [
         {
-          price: "price_1STRe0Iqafrl1dqSuqgrD7G8", // <--- Your yearly price ID
+          price: "price_1STRe0Iqafrl1dqSuqgrD7G8",
         },
       ],
       default_payment_method: paymentMethod,
@@ -48,12 +51,8 @@ module.exports = async (req, res) => {
       message: "Subscription upgraded successfully",
       subscriptionId: yearlySub.id,
       status: yearlySub.status,
-      currentPeriodStart: new Date(
-        yearlySub.current_period_start * 1000
-      ).toISOString(),
-      currentPeriodEnd: new Date(
-        yearlySub.current_period_end * 1000
-      ).toISOString(),
+      currentPeriodStart: new Date(yearlySub.current_period_start * 1000).toISOString(),
+      currentPeriodEnd: new Date(yearlySub.current_period_end * 1000).toISOString(),
     });
   } catch (err) {
     console.error("Upgrade Error:", err);
