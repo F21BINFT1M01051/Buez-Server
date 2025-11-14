@@ -24,6 +24,10 @@
       "dest": "/api/withoutTrial-subscription.js"
     },
     {
+      "src": "/api/yearly-subscription",
+      "dest": "/api/yearly-subscription.js"
+    },
+    {
       "src": "/api/cancel-subscription",
       "dest": "/api/cancel-subscription.js"
     },
