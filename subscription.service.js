@@ -3,7 +3,7 @@ const { admin, auth, db } = require("./firebaseAdmin");
 const stripe = require("./stripe-server"); // Ensure this is configured
 
 async function saveSubscription(req, res, invoice) {
-  const userId = invoice.metadata.userId;
+  const userId = invoice.subscription_details?.metadata?.userId;
   const subscriptionId = invoice.subscription || invoice.id;
   const amountPaid = invoice.amount_paid / 100;
   const currency = invoice.currency;
