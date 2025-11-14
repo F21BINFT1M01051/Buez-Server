@@ -2,7 +2,7 @@ const stripe = require("../stripe-server");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
-    const { customerId, setupIntentId } = req.body;
+    const { customerId, setupIntentId, userId } = req.body;
 
     try {
       const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
@@ -30,6 +30,7 @@ module.exports = async (req, res) => {
         items: [{ price: "price_1RYu67Iqafrl1dqSYbsDzjIa" }],
         default_payment_method: paymentMethod,
         expand: ["latest_invoice", "latest_invoice.payment_intent"],
+        metadata: { userId },
       });
 
       console.log("Subscription object:", subscription);
@@ -38,8 +39,12 @@ module.exports = async (req, res) => {
         success: true,
         subscriptionId: subscription.id,
         status: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+        currentPeriodStart: new Date(
+          subscription.current_period_start * 1000
+        ).toISOString(),
+        currentPeriodEnd: new Date(
+          subscription.current_period_end * 1000
+        ).toISOString(),
       });
     } catch (err) {
       console.error("Subscription Error:", err);

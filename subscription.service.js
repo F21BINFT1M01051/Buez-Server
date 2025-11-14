@@ -58,9 +58,12 @@ async function saveSubscription(req, res, invoice) {
           productId,
           status: "active",
         },
+        webhook: true,
       });
 
-    console.log(`Subscription ${subscriptionId} for User ${userId} saved successfully.`);
+    console.log(
+      `Subscription ${subscriptionId} for User ${userId} saved successfully.`
+    );
     res.json({ received: true });
   } catch (error) {
     console.error("Error saving subscription:", error);
