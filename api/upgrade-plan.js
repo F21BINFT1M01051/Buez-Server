@@ -11,16 +11,14 @@ module.exports = async (req, res) => {
     // 1️⃣ Retrieve current subscription
     const currentSub = await stripe.subscriptions.retrieve(currentSubscriptionId);
     if (!currentSub) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Subscription not found" });
+      return res.status(404).json({ success: false, message: "Subscription not found" });
     }
 
     // 2️⃣ Retrieve customer
     const customer = await stripe.customers.retrieve(customerId);
     let paymentMethod = customer.invoice_settings.default_payment_method;
 
-    // 3️⃣ If customer has no payment method, use SetupIntent → but attach it manually
+    // 3️⃣ Handle SetupIntent payment method
     if (!paymentMethod) {
       if (!setupIntentId) {
         return res.status(400).json({
@@ -29,35 +27,48 @@ module.exports = async (req, res) => {
         });
       }
 
-      // Retrieve SI (Stripe does NOT attach PM automatically if customer was not provided)
-      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
-      paymentMethod = setupIntent.payment_method;
+      // ❗ Retrieve SetupIntent WITH expand
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId, {
+        expand: ["payment_method"],
+      });
 
-      if (!paymentMethod) {
+      if (!setupIntent.payment_method) {
         return res.status(400).json({
           success: false,
-          message: "No payment method found on SetupIntent.",
+          message: "SetupIntent contains no payment method.",
         });
       }
 
-      // 🔥 Attach the new payment method to the customer
-      await stripe.paymentMethods.attach(paymentMethod, {
-        customer: customerId,
+      const pm = setupIntent.payment_method;
+
+      // ❗ If PM is already attached to another customer → FAIL
+      if (pm.customer && pm.customer !== customerId) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment method belongs to another customer.",
+        });
+      }
+
+      // ❗ Attach PM only if needed
+      if (!pm.customer) {
+        await stripe.paymentMethods.attach(pm.id, { customer: customerId });
+      }
+
+      // Set as default
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: pm.id },
       });
 
-      // 🔥 Set as default
-      await stripe.customers.update(customerId, {
-        invoice_settings: { default_payment_method: paymentMethod },
-      });
+      paymentMethod = pm.id;
     }
 
-    // 4️⃣ Upgrade the existing subscription (DO NOT create a new one)
+    // 4️⃣ Upgrade subscription
     const upgradedSub = await stripe.subscriptions.update(currentSubscriptionId, {
       cancel_at_period_end: false,
       items: [
         {
           id: currentSub.items.data[0].id,
-          price: "price_1STRe0Iqafrl1dqSuqgrD7G8", // yearly plan
+          price: "price_1STRe0Iqafrl1dqSuqgrD7G8",
         },
       ],
       proration_behavior: "create_prorations",
@@ -66,21 +77,17 @@ module.exports = async (req, res) => {
       expand: ["latest_invoice.payment_intent"],
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Subscription upgraded successfully",
       subscriptionId: upgradedSub.id,
       status: upgradedSub.status,
-      currentPeriodStart: new Date(
-        upgradedSub.current_period_start * 1000
-      ).toISOString(),
-      currentPeriodEnd: new Date(
-        upgradedSub.current_period_end * 1000
-      ).toISOString(),
+      currentPeriodStart: new Date(upgradedSub.current_period_start * 1000).toISOString(),
+      currentPeriodEnd: new Date(upgradedSub.current_period_end * 1000).toISOString(),
     });
 
   } catch (err) {
     console.error("Upgrade Error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
