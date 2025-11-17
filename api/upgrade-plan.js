@@ -16,10 +16,10 @@ module.exports = async (req, res) => {
 
     // 2️⃣ Retrieve customer
     const customer = await stripe.customers.retrieve(customerId);
-    let paymentMethod = customer.invoice_settings.default_payment_method;
+    let paymentMethodId = customer.invoice_settings.default_payment_method;
 
     // 3️⃣ Handle SetupIntent payment method
-    if (!paymentMethod) {
+    if (!paymentMethodId) {
       if (!setupIntentId) {
         return res.status(400).json({
           success: false,
@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      // ❗ Retrieve SetupIntent WITH expand
+      // Retrieve SetupIntent WITH expand
       const setupIntent = await stripe.setupIntents.retrieve(setupIntentId, {
         expand: ["payment_method"],
       });
@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
 
       const pm = setupIntent.payment_method;
 
-      // ❗ If PM is already attached to another customer → FAIL
+      // If PM is already attached to another customer → FAIL
       if (pm.customer && pm.customer !== customerId) {
         return res.status(400).json({
           success: false,
@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      // ❗ Attach PM only if needed
+      // Attach PM only if needed
       if (!pm.customer) {
         await stripe.paymentMethods.attach(pm.id, { customer: customerId });
       }
@@ -59,10 +59,10 @@ module.exports = async (req, res) => {
         invoice_settings: { default_payment_method: pm.id },
       });
 
-      paymentMethod = pm.id;
+      paymentMethodId = pm.id;
     }
 
-    // 4️⃣ Upgrade subscription
+    // 4️⃣ Upgrade subscription - Use paymentMethodId, not the full object
     const upgradedSub = await stripe.subscriptions.update(currentSubscriptionId, {
       cancel_at_period_end: false,
       items: [
@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
         },
       ],
       proration_behavior: "create_prorations",
-      default_payment_method: paymentMethod,
+      default_payment_method: paymentMethodId, // This should be the ID string
       metadata: { userId },
       expand: ["latest_invoice.payment_intent"],
     });
