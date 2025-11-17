@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
 
     // 4️⃣ Cancel current subscription at period end
     await stripe.subscriptions.update(currentSubscriptionId, {
-      cancel_at_period_end: true,
+      cancel_at_period_end: false,
     });
 
     // 5️⃣ Create a new yearly subscription
