@@ -13,7 +13,7 @@ async function saveSubscription(req, res, invoice) {
   const productId = invoice?.lines?.data[0]?.plan?.product || null;
   const status = invoice.status;
 
-  console.log("id,..............",userId)
+  console.log("id,..............", userId);
 
   try {
     // 🔁 Fetch full subscription object to get period dates
@@ -40,12 +40,12 @@ async function saveSubscription(req, res, invoice) {
       periodEnd,
     });
 
-    // ✅ Update user doc with relevant fields
+ 
     await db
       .collection("users")
       .doc(userId)
       .update({
-        isSubscribed: true,
+        isSubscribed: subscription.status === "active",
         isFreeTrial: isTrial,
         subscriptionStart: periodStart,
         subscriptionEnd: periodEnd,
@@ -58,7 +58,7 @@ async function saveSubscription(req, res, invoice) {
           planId,
           planInterval,
           productId,
-          status: "active",
+          status: subscription.status,
         },
         webhook: true,
       });
