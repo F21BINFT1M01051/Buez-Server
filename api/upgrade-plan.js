@@ -9,9 +9,13 @@ module.exports = async (req, res) => {
 
   try {
     // 1️⃣ Retrieve current subscription
-    const currentSub = await stripe.subscriptions.retrieve(currentSubscriptionId);
+    const currentSub = await stripe.subscriptions.retrieve(
+      currentSubscriptionId
+    );
     if (!currentSub) {
-      return res.status(404).json({ success: false, message: "Subscription not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Subscription not found" });
     }
 
     // 2️⃣ Retrieve customer
@@ -38,35 +42,44 @@ module.exports = async (req, res) => {
       }
 
       // Attach payment method and set as default
-      await stripe.paymentMethods.attach(paymentMethod, { customer: customerId });
+      await stripe.paymentMethods.attach(paymentMethod, {
+        customer: customerId,
+      });
       await stripe.customers.update(customerId, {
         invoice_settings: { default_payment_method: paymentMethod },
       });
     }
 
-    // 4️⃣ Cancel current subscription at period end
-    await stripe.subscriptions.update(currentSubscriptionId, {
-      cancel_at_period_end: false,
-    });
-
-    // 5️⃣ Create a new yearly subscription
-    const yearlySub = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: "price_1STRe0Iqafrl1dqSuqgrD7G8" }],
-      default_payment_method: paymentMethod,
-      metadata: { userId },
-      proration_behavior: "create_prorations",
-      expand: ["latest_invoice.payment_intent"],
-    });
+    // 4️⃣ Upgrade the subscription (ONLY update once)
+    const upgradedSub = await stripe.subscriptions.update(
+      currentSubscriptionId,
+      {
+        cancel_at_period_end: false, // keep subscription active
+        items: [
+          {
+            id: currentSub.items.data[0].id,
+            price: "price_1STRe0Iqafrl1dqSuqgrD7G8", // yearly price ID
+          },
+        ],
+        proration_behavior: "create_prorations",
+        default_payment_method: paymentMethod,
+        expand: ["latest_invoice.payment_intent"],
+      }
+    );
 
     res.status(200).json({
       success: true,
       message: "Subscription upgraded successfully",
-      subscriptionId: yearlySub.id,
-      status: yearlySub.status,
-      currentPeriodStart: new Date(yearlySub.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(yearlySub.current_period_end * 1000).toISOString(),
+      subscriptionId: upgradedSub.id,
+      status: upgradedSub.status,
+      currentPeriodStart: new Date(
+        upgradedSub.current_period_start * 1000
+      ).toISOString(),
+      currentPeriodEnd: new Date(
+        upgradedSub.current_period_end * 1000
+      ).toISOString(),
     });
+
   } catch (err) {
     console.error("Upgrade Error:", err);
     res.status(500).json({ success: false, message: err.message });
