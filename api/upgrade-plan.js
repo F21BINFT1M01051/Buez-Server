@@ -14,55 +14,48 @@ module.exports = async (req, res) => {
       return res.status(404).json({ success: false, message: "Subscription not found" });
     }
 
-    // 2️⃣ Retrieve customer
-    const customer = await stripe.customers.retrieve(customerId);
-    let paymentMethodId = customer.invoice_settings.default_payment_method;
-
-    // 3️⃣ Handle SetupIntent payment method
-    if (!paymentMethodId) {
-      if (!setupIntentId) {
-        return res.status(400).json({
-          success: false,
-          message: "No default payment method. Provide a card via SetupIntent.",
-        });
-      }
-
-      // Retrieve SetupIntent WITH expand
-      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId, {
-        expand: ["payment_method"],
+    // 2️⃣ Handle SetupIntent payment method
+    if (!setupIntentId) {
+      return res.status(400).json({
+        success: false,
+        message: "SetupIntent ID is required.",
       });
-
-      if (!setupIntent.payment_method) {
-        return res.status(400).json({
-          success: false,
-          message: "SetupIntent contains no payment method.",
-        });
-      }
-
-      const pm = setupIntent.payment_method;
-
-      // If PM is already attached to another customer → FAIL
-      if (pm.customer && pm.customer !== customerId) {
-        return res.status(400).json({
-          success: false,
-          message: "Payment method belongs to another customer.",
-        });
-      }
-
-      // Attach PM only if needed
-      if (!pm.customer) {
-        await stripe.paymentMethods.attach(pm.id, { customer: customerId });
-      }
-
-      // Set as default
-      await stripe.customers.update(customerId, {
-        invoice_settings: { default_payment_method: pm.id },
-      });
-
-      paymentMethodId = pm.id;
     }
 
-    // 4️⃣ Upgrade subscription - Use paymentMethodId, not the full object
+    // Retrieve SetupIntent WITH expand
+    const setupIntent = await stripe.setupIntents.retrieve(setupIntentId, {
+      expand: ["payment_method"],
+    });
+
+    if (!setupIntent.payment_method) {
+      return res.status(400).json({
+        success: false,
+        message: "SetupIntent contains no payment method.",
+      });
+    }
+
+    const pm = setupIntent.payment_method;
+
+    // If PM is already attached to another customer → FAIL
+    if (pm.customer && pm.customer !== customerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment method belongs to another customer.",
+      });
+    }
+
+    // ❗ IMPORTANT: Attach PM only if needed
+    let paymentMethodId = pm.id;
+    if (!pm.customer) {
+      await stripe.paymentMethods.attach(pm.id, { customer: customerId });
+    }
+
+    // Set as default payment method
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: pm.id },
+    });
+
+    // 3️⃣ Upgrade subscription
     const upgradedSub = await stripe.subscriptions.update(currentSubscriptionId, {
       cancel_at_period_end: false,
       items: [
@@ -72,7 +65,7 @@ module.exports = async (req, res) => {
         },
       ],
       proration_behavior: "create_prorations",
-      default_payment_method: paymentMethodId, // This should be the ID string
+      default_payment_method: pm.id, // Use the payment method ID
       metadata: { userId },
       expand: ["latest_invoice.payment_intent"],
     });
