@@ -1,8 +1,27 @@
 const stripe = require("../stripe-server");
 
+// Map price IDs for monthly and yearly products
+const PRICE_IDS = {
+  monthly: {
+    USD: "price_1SVXQNIqafrl1dqS0dFyP4tG",
+    EUR: "price_1SVXPpIqafrl1dqSFgMfnRFo",
+    CHF: "price_1SVSoTIqafrl1dqSSiWwNtck",
+  },
+  yearly: {
+    USD: "price_1SVXeiIqafrl1dqSh7sOIies",
+    EUR: "price_1SVXeLIqafrl1dqSBY5r8AC2",
+    CHF: "price_1SVXdwIqafrl1dqSK8QjArLi",
+  },
+};
+
 module.exports = async (req, res) => {
   if (req.method === "POST") {
     const { customerId, setupIntentId, userId } = req.body;
+    const userCurrency = req.body.currency || "USD"; // default USD
+    const planType = req.body.planType; // "monthly" or "yearly"
+
+    const priceId = PRICE_IDS[planType][userCurrency];
+    if (!priceId) throw new Error("Price ID not found for selected currency");
 
     try {
       const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
@@ -27,7 +46,7 @@ module.exports = async (req, res) => {
       // ✅ Create subscription with 14-day trial
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
-        items: [{ price: "price_1RYu67Iqafrl1dqSYbsDzjIa" }],
+        items: [{ price: priceId }],
         default_payment_method: paymentMethod,
         trial_period_days: 14,
         expand: ["latest_invoice"],
