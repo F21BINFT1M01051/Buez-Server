@@ -17,7 +17,7 @@ const PRICE_IDS = {
 module.exports = async (req, res) => {
   if (req.method === "POST") {
     const { customerId, setupIntentId, userId } = req.body;
-    
+
     const userCurrency = req.body.currency || "USD"; // default USD
     const planType = req.body.planType; // "monthly" or "yearly"
 
@@ -52,6 +52,9 @@ module.exports = async (req, res) => {
         trial_period_days: 14,
         expand: ["latest_invoice"],
         metadata: { userId },
+        subscription_data: {
+          metadata: { userId },
+        },
       });
 
       console.log("Subscription object:", subscription);
