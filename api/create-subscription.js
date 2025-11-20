@@ -52,9 +52,7 @@ module.exports = async (req, res) => {
         trial_period_days: 14,
         expand: ["latest_invoice"],
         metadata: { userId },
-        subscription_data: {
-          metadata: { userId },
-        },
+       
       });
 
       console.log("Subscription object:", subscription);

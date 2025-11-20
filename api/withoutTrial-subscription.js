@@ -50,9 +50,7 @@ module.exports = async (req, res) => {
         default_payment_method: paymentMethod,
         expand: ["latest_invoice", "latest_invoice.payment_intent"],
         metadata: { userId },
-        subscription_data: {
-          metadata: { userId },
-        },
+       
       });
 
       console.log("Subscription object:", subscription);
