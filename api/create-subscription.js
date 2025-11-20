@@ -17,6 +17,7 @@ const PRICE_IDS = {
 module.exports = async (req, res) => {
   if (req.method === "POST") {
     const { customerId, setupIntentId, userId } = req.body;
+    
     const userCurrency = req.body.currency || "USD"; // default USD
     const planType = req.body.planType; // "monthly" or "yearly"
 
@@ -43,7 +44,7 @@ module.exports = async (req, res) => {
         },
       });
 
-      // ✅ Create subscription with 14-day trial
+      //Create subscription with 14-day trial
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
