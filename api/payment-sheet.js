@@ -2,10 +2,13 @@ const stripe = require("../stripe-server");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
-    const { email } = req.body;
+    const { email, userId } = req.body;
 
     try {
-      const customer = await stripe.customers.create({ email });
+      const customer = await stripe.customers.create({
+        email,
+        metadata: { userId },
+      });
       const setupIntent = await stripe.setupIntents.create({
         customer: customer.id,
         payment_method_types: ["card"],
