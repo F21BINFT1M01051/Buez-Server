@@ -1,24 +1,35 @@
 const stripe = require("../stripe-server");
 
+const YEARLY_PRICE_IDS = {
+  USD: "price_1SVXeiIqafrl1dqSh7sOIies",
+  EUR: "price_1SVXeLIqafrl1dqSBY5r8AC2",
+  CHF: "price_1SVXdwIqafrl1dqSK8QjArLi",
+};
+
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method Not Allowed" });
   }
 
-  const { customerId, currentSubscriptionId, userId, setupIntentId } = req.body;
+  const { customerId, currentSubscriptionId, userId, setupIntentId, currency } =
+    req.body;
 
   try {
-    // 1️⃣ Retrieve current subscription
-    const currentSub = await stripe.subscriptions.retrieve(currentSubscriptionId);
+    // Retrieve current subscription
+    const currentSub = await stripe.subscriptions.retrieve(
+      currentSubscriptionId
+    );
     if (!currentSub) {
-      return res.status(404).json({ success: false, message: "Subscription not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Subscription not found" });
     }
 
-    // 2️⃣ Retrieve customer
+    //Retrieve customer
     const customer = await stripe.customers.retrieve(customerId);
     let paymentMethod = customer.invoice_settings.default_payment_method;
 
-    // 3️⃣ If no payment method, use SetupIntent
+    //If no payment method, use SetupIntent
     if (!paymentMethod) {
       if (!setupIntentId) {
         return res.status(400).json({
@@ -38,34 +49,52 @@ module.exports = async (req, res) => {
       }
 
       // Attach payment method and set as default
-      await stripe.paymentMethods.attach(paymentMethod, { customer: customerId });
+      await stripe.paymentMethods.attach(paymentMethod, {
+        customer: customerId,
+      });
       await stripe.customers.update(customerId, {
         invoice_settings: { default_payment_method: paymentMethod },
       });
     }
 
-    // 4️⃣ Cancel current subscription at period end
-    await stripe.subscriptions.update(currentSubscriptionId, {
-      cancel_at_period_end: true,
-    });
+    // Determine yearly price for user's currency
+    const priceId = YEARLY_PRICE_IDS[currency || "USD"];
+    if (!priceId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Price ID not found for currency" });
+    }
 
-    // 5️⃣ Create a new yearly subscription
-    const yearlySub = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: "price_1STRe0Iqafrl1dqSuqgrD7G8" }],
-      default_payment_method: paymentMethod,
-      metadata: { userId },
-      proration_behavior: "create_prorations",
-      expand: ["latest_invoice.payment_intent"],
-    });
+    //  Update current subscription to remove old items and prorate
+    // Stripe allows us to update the subscription with a new price directly
+    const updatedSub = await stripe.subscriptions.update(
+      currentSubscriptionId,
+      {
+        cancel_at_period_end: false,
+        items: [
+          {
+            id: currentSub.items.data[0].id,
+            price: priceId,
+          },
+        ],
+        proration_behavior: "create_prorations", // ⚡ proration will credit unused portion
+        default_payment_method: paymentMethod,
+        expand: ["latest_invoice.payment_intent"],
+      }
+    );
 
     res.status(200).json({
       success: true,
       message: "Subscription upgraded successfully",
-      subscriptionId: yearlySub.id,
-      status: yearlySub.status,
-      currentPeriodStart: new Date(yearlySub.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(yearlySub.current_period_end * 1000).toISOString(),
+      subscriptionId: updatedSub.id,
+      status: updatedSub.status,
+      currentPeriodStart: new Date(
+        updatedSub.current_period_start * 1000
+      ).toISOString(),
+      currentPeriodEnd: new Date(
+        updatedSub.current_period_end * 1000
+      ).toISOString(),
+      prorationInvoice: updatedSub.latest_invoice,
     });
   } catch (err) {
     console.error("Upgrade Error:", err);
