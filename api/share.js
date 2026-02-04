@@ -1,5 +1,6 @@
-const { customAlphabet } = require("nanoid");
-const { db } = require("../firebaseAdmin");
+import { customAlphabet } from "nanoid";
+import { db } from "../firebaseAdmin.js";
+import { admin } from "../firebaseAdmin.js";
 
 // Generate short codes (8 characters, URL-safe)
 const nanoid = customAlphabet(
@@ -7,7 +8,7 @@ const nanoid = customAlphabet(
   8
 );
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   // Enable CORS
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -60,7 +61,7 @@ module.exports = async (req, res) => {
         });
       } else {
         // Create new link
-        shortCode = nanoid();
+        shortCode = nanoid(); // This now uses your custom 8-char alphabet
         shareData = {
           jobId,
           jobTitle,
@@ -80,10 +81,9 @@ module.exports = async (req, res) => {
       }
 
       const baseUrl = "buez-server-khaki.vercel.app";
-
       const shareUrl = `https://${baseUrl}/${shortCode}`;
 
-      // Increment share count
+      // Increment share count (FIXED: added admin import)
       await db
         .collection("shareLinks")
         .doc(shortCode)
@@ -135,7 +135,7 @@ module.exports = async (req, res) => {
       // Check if link is expired or inactive
       if (
         !data.isActive ||
-        (data.expiresAt && new Date(data.expiresAt) < new Date())
+        (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date())
       ) {
         return res.status(410).json({
           success: false,
@@ -168,32 +168,3 @@ module.exports = async (req, res) => {
     error: "Method not allowed",
   });
 };
-
-
-
-/*
-Share Links Collection Structure:
--------------------------------
-Collection: shareLinks
-Document ID: {shortCode} (8 chars)
-
-Fields:
-- jobId: string (Firebase task document ID)
-- jobTitle: string
-- jobDescription: string (optional)
-- companyName: string (optional)
-- userId: string (who created the link)
-- clicks: number (how many times clicked)
-- shares: number (how many times shared)
-- createdAt: timestamp
-- lastSharedAt: timestamp
-- expiresAt: timestamp (auto expires after 90 days)
-- isActive: boolean
-- metadata: map (additional data)
-*/
-
-// Indexes to create in Firestore Console:
-// 1. jobId (ascending)
-// 2. userId (ascending)
-// 3. createdAt (descending)
-// 4. expiresAt (ascending)
