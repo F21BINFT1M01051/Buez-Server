@@ -1,11 +1,13 @@
 const { customAlphabet } = require("nanoid");
 const { db } = require("../firebaseAdmin");
 import { admin } from "../firebaseAdmin";
-// Generate short codes (8 characters, URL-safe)
+
+
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   8
 );
+
 
 module.exports = async (req, res) => {
   // Enable CORS
