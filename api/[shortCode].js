@@ -1,7 +1,6 @@
 import { admin } from "../firebaseAdmin";
 import { db } from "../firebaseAdmin";
 
-
 const APP_CONFIG = {
   urlScheme: "buez",
   iosAppId: "YOUR_IOS_APP_ID",
@@ -49,8 +48,14 @@ function getDeviceType(userAgent) {
 }
 
 module.exports = async (req, res) => {
-  const { shortCode } = req.query;
+  const shortCode =
+    req.query.shortCode || req.query.shortcode || req.params?.shortCode;
 
+  console.log("Query:", req.query);
+  console.log("Params:", req.params);
+  console.log("Extracted shortCode:", shortCode);
+
+  
   if (!shortCode) {
     return sendErrorPage(res, "Invalid Link", "The link is missing a code.");
   }
