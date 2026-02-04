@@ -1,4 +1,6 @@
-const { db } = require("../firebaseAdmin");
+import { admin } from "../firebaseAdmin";
+import { db } from "../firebaseAdmin";
+
 
 const APP_CONFIG = {
   urlScheme: "buez",
