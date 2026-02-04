@@ -1,5 +1,5 @@
 import { admin } from "../firebaseAdmin";
-import { db } from "../firebaseAdmin";
+const { db } = require("../firebaseAdmin");
 
 const APP_CONFIG = {
   urlScheme: "buez",
@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
   console.log("Params:", req.params);
   console.log("Extracted shortCode:", shortCode);
 
-  
+
   if (!shortCode) {
     return sendErrorPage(res, "Invalid Link", "The link is missing a code.");
   }
