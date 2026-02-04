@@ -1,14 +1,13 @@
-import { customAlphabet } from "nanoid";
-import { db } from "../firebaseAdmin.js";
-import { admin } from "../firebaseAdmin.js";
-
+const { customAlphabet } = require("nanoid");
+const { db } = require("../firebaseAdmin");
+import { admin } from "../firebaseAdmin";
 // Generate short codes (8 characters, URL-safe)
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   8
 );
 
-export default async (req, res) => {
+module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader("Access-Control-Allow-Credentials", true);
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -61,7 +60,7 @@ export default async (req, res) => {
         });
       } else {
         // Create new link
-        shortCode = nanoid(); // This now uses your custom 8-char alphabet
+        shortCode = nanoid();
         shareData = {
           jobId,
           jobTitle,
@@ -83,7 +82,7 @@ export default async (req, res) => {
       const baseUrl = "buez-server-khaki.vercel.app";
       const shareUrl = `https://${baseUrl}/${shortCode}`;
 
-      // Increment share count (FIXED: added admin import)
+      // Increment share count
       await db
         .collection("shareLinks")
         .doc(shortCode)
@@ -135,7 +134,7 @@ export default async (req, res) => {
       // Check if link is expired or inactive
       if (
         !data.isActive ||
-        (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date())
+        (data.expiresAt && data.expiresAt.toDate() < new Date())
       ) {
         return res.status(410).json({
           success: false,
