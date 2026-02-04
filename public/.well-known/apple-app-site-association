@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "34G27X37J4.com.adamburg.Buez",
+        "paths": [
+          "/job/*",
+          "/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "34G27X37J4.com.adamburg.Buez"
+    ]
+  }
+}

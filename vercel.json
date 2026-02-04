@@ -27,7 +27,7 @@
       "src": "/api/yearly-subscription",
       "dest": "/api/yearly-subscription.js"
     },
-     {
+    {
       "src": "/api/upgrade-plan",
       "dest": "/api/upgrade-plan.js"
     },
@@ -42,6 +42,30 @@
     {
       "src": "/api/instagram-login",
       "dest": "/api/instagram-login.js"
+    },
+
+    {
+      "src": "/api/share",
+      "dest": "/api/share.js",
+      "methods": ["GET", "POST", "OPTIONS"]
+    },
+    {
+      "src": "/.well-known/apple-app-site-association",
+      "dest": "/public/.well-known/apple-app-site-association",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "src": "/.well-known/assetlinks.json",
+      "dest": "/public/.well-known/assetlinks.json",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "src": "/([a-zA-Z0-9]{8})",
+      "dest": "/api/[shortCode].js"
     }
   ]
 }
