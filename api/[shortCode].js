@@ -3,7 +3,7 @@ const { db } = require("../firebaseAdmin");
 
 const APP_CONFIG = {
   urlScheme: "buez",
-  iosAppId: "YOUR_IOS_APP_ID",
+  iosAppId: "6753902802",
   androidPackage: "com.adamburg.Buez",
   appName: "Buez",
 };
