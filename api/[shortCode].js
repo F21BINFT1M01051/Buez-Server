@@ -4,6 +4,7 @@ const { db } = require("../firebaseAdmin");
 const APP_CONFIG = {
   urlScheme: "buez",
   iosAppId: "6753902802",
+  iosTestFlightUrl: "https://testflight.apple.com/join/ZcR7R163",
   androidPackage: "com.adamburg.Buez",
   appName: "Buez",
 };
@@ -54,7 +55,6 @@ module.exports = async (req, res) => {
   console.log("Query:", req.query);
   console.log("Params:", req.params);
   console.log("Extracted shortCode:", shortCode);
-
 
   if (!shortCode) {
     return sendErrorPage(res, "Invalid Link", "The link is missing a code.");
@@ -216,7 +216,9 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   }
 
   const deepLinkUrl = `${appConfig.urlScheme}://job/${linkData.jobId}`;
-  const iosStoreUrl = `https://apps.apple.com/app/id${appConfig.iosAppId}`;
+  const iosStoreUrl = appConfig.iosTestFlightUrl
+    ? appConfig.iosTestFlightUrl
+    : `https://apps.apple.com/app/id${appConfig.iosAppId}`;
   const androidStoreUrl = `https://play.google.com/store/apps/details?id=${appConfig.androidPackage}`;
 
   // Add compensation info if available
@@ -565,9 +567,9 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         </button>
         
         <div class="store-buttons">
-          <a href="${iosStoreUrl}" class="btn btn-secondary" id="iosBtn" style="display: none;">
-            📱 Download for iOS
-          </a>
+         <a href="${iosStoreUrl}" class="btn btn-secondary" id="iosBtn" style="display: none;">
+  ${appConfig.useTestFlight ? "✈️ Join TestFlight Beta" : "📱 Download for iOS"}
+</a>
           <a href="${androidStoreUrl}" class="btn btn-secondary" id="androidBtn" style="display: none;">
             🤖 Download for Android
           </a>
