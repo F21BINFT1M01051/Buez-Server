@@ -689,7 +689,6 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   </head>
   <body>
     <div class="container">
-      <div class="logo">📌</div>
       
       ${imageUrl !== "https://buez-app.vercel.app/logo.png" ? `<img src="${imageUrl}" alt="${jobTitle}" class="job-image">` : ''}
       
