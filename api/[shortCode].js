@@ -224,7 +224,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   // Add compensation info if available
   let compensationInfo = "";
   if (jobDetails.compensationType === "Monitarely" && jobDetails.monitarily) {
-    compensationInfo = `<div class="compensation">💰 Compensation: ${jobDetails.monitarily}</div>`;
+    compensationInfo = `<div class="compensation">Compensation: ${jobDetails.monitarily}</div>`;
   } else if (jobDetails.otherCompensation) {
     compensationInfo = `<div class="compensation">🎁 Compensation: ${jobDetails.otherCompensation}</div>`;
   }
@@ -232,7 +232,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   // Add location if available
   let locationInfo = "";
   if (jobDetails.address?.name) {
-    locationInfo = `<div class="location">📍 Location: ${jobDetails.address.name}</div>`;
+    locationInfo = `<div class="location">Location: ${jobDetails.address.name}</div>`;
   }
 
   return `
@@ -537,7 +537,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   </head>
   <body>
     <div class="container">
-      <div class="logo">💼</div>
+      <div class="logo">📌</div>
       
       <div class="job-header">
         <h1>${jobTitle}</h1>
