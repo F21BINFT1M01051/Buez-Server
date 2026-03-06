@@ -331,45 +331,63 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
       let appOpened = false;
       let attemptedOpen = false;
+      let redirectTimer = null;
       
       // Track if user came from social media
       const referrer = document.referrer;
       const isFromSocialMedia = referrer.includes('facebook.com') || 
                                referrer.includes('whatsapp.com') ||
                                referrer.includes('twitter.com') ||
+                               referrer.includes('instagram.com') ||
                                referrer.includes('linkedin.com');
       
-      // Open app - Safari compatible
+      // Open app - Safari compatible with better error handling
       function openApp() {
         if (attemptedOpen) return;
         attemptedOpen = true;
         
         console.log('Attempting to open app with:', CONFIG.deepLink);
         
-        // For Safari on iOS, use iframe method
+        // For Safari on iOS, try deep link with quick fallback
         if (isSafari && isIOS) {
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = CONFIG.deepLink;
-          document.body.appendChild(iframe);
-          
-          // Fallback after timeout
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            if (!appOpened) {
-              console.log('Deep link failed, showing fallback');
-              fallbackToAppStore();
-            }
-          }, 2000);
-        } else {
-          // For other browsers, use window.location
+          const start = Date.now();
           window.location.href = CONFIG.deepLink;
+          
+          // Quick fallback - if page is still visible after 1.5 seconds, app didn't open
+          redirectTimer = setTimeout(() => {
+            const elapsed = Date.now() - start;
+            // If we're still here and page is visible, app didn't open
+            if (!document.hidden && elapsed < 2000) {
+              console.log('App not detected, redirecting to store');
+              appOpened = false;
+              clearTimeout(redirectTimer);
+              // Redirect immediately to TestFlight/App Store
+              window.location.href = CONFIG.iosStore;
+            }
+          }, 1500);
+          
+        } else if (isAndroid) {
+          // Android - try deep link with quick fallback
+          const start = Date.now();
+          window.location.href = CONFIG.deepLink;
+          
+          setTimeout(() => {
+            if (!document.hidden) {
+              window.location.href = CONFIG.androidStore;
+            }
+          }, 1500);
+          
+        } else {
+          // Desktop or other - show download options
+          fallbackToAppStore();
         }
       }
       
       // Fallback to app store
       function fallbackToAppStore() {
-        console.log('App not detected, showing download options');
+        console.log('Showing download options');
+        if (redirectTimer) clearTimeout(redirectTimer);
+        
         document.getElementById('status').style.display = 'none';
         document.getElementById('buttons').style.display = 'block';
         
@@ -388,6 +406,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       document.addEventListener('visibilitychange', function() {
         if (document.hidden) {
           appOpened = true;
+          if (redirectTimer) clearTimeout(redirectTimer);
           console.log('App opened successfully (visibility change)');
         }
       });
@@ -395,13 +414,22 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       // iOS/Safari specific: pagehide event
       window.addEventListener('pagehide', function() {
         appOpened = true;
+        if (redirectTimer) clearTimeout(redirectTimer);
         console.log('Page hidden - app likely opened');
       });
       
       // Window blur event
       window.addEventListener('blur', function() {
         appOpened = true;
+        if (redirectTimer) clearTimeout(redirectTimer);
         console.log('Window blurred - app likely opened');
+      });
+      
+      // Prevent showing error by catching it
+      window.addEventListener('error', function(e) {
+        console.log('Error caught:', e);
+        e.preventDefault();
+        return false;
       });
       
       // Page load handler
@@ -409,44 +437,41 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         console.log('Platform detected:', { isIOS, isAndroid, isSafari });
         console.log('Referrer:', referrer);
         
-        // For Safari, show button immediately instead of auto-redirect
+        // For Safari on iOS, show button first
         if (isSafari && isIOS) {
+          // Show UI immediately
           document.getElementById('status').style.display = 'none';
           document.getElementById('buttons').style.display = 'block';
           document.getElementById('openAppBtn').style.display = 'block';
           
-          // Auto-click the button after a brief delay (Safari allows this)
+          // Auto-trigger after brief delay
           setTimeout(() => {
-            document.getElementById('openAppBtn').click();
-          }, 500);
+            if (!attemptedOpen) {
+              document.getElementById('openAppBtn').click();
+            }
+          }, 800);
         } else {
           // For non-Safari, try immediate redirect
-          openApp();
-          
-          // Fallback after delay
           setTimeout(() => {
-            if (!appOpened) {
-              fallbackToAppStore();
-            }
-          }, isFromSocialMedia ? 3000 : 2500);
+            openApp();
+          }, 500);
         }
       });
       
       // Handle manual "Open in App" button
       document.getElementById('openAppBtn')?.addEventListener('click', function(e) {
         e.preventDefault();
-        openApp();
         
-        // Double fallback for button click
-        setTimeout(() => {
-          if (!appOpened) {
-            if (isIOS) {
-              window.location.href = CONFIG.iosStore;
-            } else if (isAndroid) {
-              window.location.href = CONFIG.androidStore;
-            }
-          }
-        }, 2000);
+        if (isIOS) {
+          // Try deep link first, then fallback to store
+          openApp();
+        } else if (isAndroid) {
+          // Try app first, then store
+          openApp();
+        } else {
+          // Desktop - show options
+          fallbackToAppStore();
+        }
       });
       
       // Handle store button clicks
