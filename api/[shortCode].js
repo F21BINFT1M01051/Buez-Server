@@ -7,6 +7,7 @@ const APP_CONFIG = {
   iosTestFlightUrl: "https://testflight.apple.com/join/UsnNJ7cj",
   androidPackage: "com.adamburg.Buez",
   appName: "Buez",
+  useTestFlight: true, // Set to false when publishing to App Store
 };
 
 // Track click in Firebase
@@ -199,9 +200,13 @@ function sendErrorPage(res, title, message) {
 }
 
 function generateJobPage(linkData, jobDetails, appConfig) {
-  const jobTitle = linkData.jobTitle || "Job Opportunity";
+  const jobTitle = linkData.jobTitle || jobDetails.customTaskTitle || "Job Opportunity";
   const description = linkData.jobDescription || jobDetails.description || "";
   const company = linkData.companyName || jobDetails.user?.userName || "";
+  const taskType = jobDetails.taskType || "";
+  const numberOfWorkers = jobDetails.numberOfWorkers || 1;
+  const slotsAvailable = jobDetails.slotsAvailable || numberOfWorkers;
+  const isBulkRequest = jobDetails.isBulkRequest || false;
 
   // Prepare meta description
   const metaDescription =
@@ -216,23 +221,62 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   }
 
   const deepLinkUrl = `${appConfig.urlScheme}://job/${linkData.jobId}`;
-  const iosStoreUrl = appConfig.iosTestFlightUrl
+  const iosStoreUrl = appConfig.useTestFlight && appConfig.iosTestFlightUrl
     ? appConfig.iosTestFlightUrl
     : `https://apps.apple.com/app/id${appConfig.iosAppId}`;
   const androidStoreUrl = `https://play.google.com/store/apps/details?id=${appConfig.androidPackage}`;
 
-  // Add compensation info if available
+  // Add compensation info with currency
   let compensationInfo = "";
   if (jobDetails.compensationType === "Monitarely" && jobDetails.monitarily) {
-    compensationInfo = `<div class="compensation">Compensation: ${jobDetails.monitarily}</div>`;
+    const currencySymbol = jobDetails.currencyInfo?.symbol || "$";
+    const amount = jobDetails.monitarily;
+    compensationInfo = `<div class="compensation">Compensation: ${currencySymbol}${amount}</div>`;
   } else if (jobDetails.otherCompensation) {
-    compensationInfo = `<div class="compensation">🎁 Compensation: ${jobDetails.otherCompensation}</div>`;
+    compensationInfo = `<div class="compensation">Compensation: ${jobDetails.otherCompensation}</div>`;
   }
 
   // Add location if available
   let locationInfo = "";
   if (jobDetails.address?.name) {
     locationInfo = `<div class="location">Location: ${jobDetails.address.name}</div>`;
+  }
+
+  // Add task type
+  let taskTypeInfo = "";
+  if (taskType) {
+    taskTypeInfo = `<div class="task-type">Category: ${taskType}</div>`;
+  }
+
+  // Add slots/workers info
+  let workersInfo = "";
+  if (isBulkRequest && numberOfWorkers > 1) {
+    workersInfo = `<div class="workers-info">Workers Needed: ${numberOfWorkers} • Available Slots: ${slotsAvailable}</div>`;
+  }
+
+  // Add posted by info
+  let postedByInfo = "";
+  if (jobDetails.user?.userName) {
+    const profileImage = jobDetails.user?.profileImage || "";
+    const biography = jobDetails.user?.biography || "";
+    
+    postedByInfo = `
+      <div class="posted-by">
+        ${profileImage ? `<img src="${profileImage}" alt="${jobDetails.user.userName}" class="poster-avatar">` : '<div class="poster-avatar-placeholder">👤</div>'}
+        <div class="poster-info">
+          <div class="poster-name">${jobDetails.user.userName}</div>
+          ${biography ? `<div class="poster-bio">${biography.length > 100 ? biography.substring(0, 97) + '...' : biography}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Add status badge
+  let statusBadge = "";
+  if (jobDetails.status) {
+    const statusColor = jobDetails.status === "Active" ? "#10b981" : 
+                       jobDetails.status === "Completed" ? "#6b7280" : "#f59e0b";
+    statusBadge = `<div class="status-badge" style="background-color: ${statusColor};">${jobDetails.status}</div>`;
   }
 
   return `
@@ -249,14 +293,14 @@ function generateJobPage(linkData, jobDetails, appConfig) {
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-<meta property="og:url" content="https://buez-server-khaki.vercel.app/">
+    <meta property="og:url" content="https://buez-server-khaki.vercel.app/">
     <meta property="og:title" content="${jobTitle} - ${appConfig.appName}">
     <meta property="og:description" content="${metaDescription}">
     <meta property="og:image" content="${imageUrl}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-<meta property="twitter:url" content="https://buez-server-khaki.vercel.app/">
+    <meta property="twitter:url" content="https://buez-server-khaki.vercel.app/">
     <meta property="twitter:title" content="${jobTitle} - ${appConfig.appName}">
     <meta property="twitter:description" content="${metaDescription}">
     <meta property="twitter:image" content="${imageUrl}">
@@ -268,7 +312,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
     <meta property="al:android:url" content="${deepLinkUrl}">
     <meta property="al:android:app_name" content="${appConfig.appName}">
     <meta property="al:android:package" content="${appConfig.androidPackage}">
-<meta property="al:web:url" content="https://buez-server-khaki.vercel.app/">
+    <meta property="al:web:url" content="https://buez-server-khaki.vercel.app/">
     
     <script>
       // Configuration
@@ -276,14 +320,17 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         deepLink: '${deepLinkUrl}',
         iosStore: '${iosStoreUrl}',
         androidStore: '${androidStoreUrl}',
-        appName: '${appConfig.appName}'
+        appName: '${appConfig.appName}',
+        useTestFlight: ${appConfig.useTestFlight}
       };
       
       // Platform detection
       const userAgent = navigator.userAgent || navigator.vendor || window.opera;
       const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
       const isAndroid = /android/i.test(userAgent);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
       let appOpened = false;
+      let attemptedOpen = false;
       
       // Track if user came from social media
       const referrer = document.referrer;
@@ -292,15 +339,37 @@ function generateJobPage(linkData, jobDetails, appConfig) {
                                referrer.includes('twitter.com') ||
                                referrer.includes('linkedin.com');
       
-      // Open app immediately
+      // Open app - Safari compatible
       function openApp() {
+        if (attemptedOpen) return;
+        attemptedOpen = true;
+        
         console.log('Attempting to open app with:', CONFIG.deepLink);
-        window.location.href = CONFIG.deepLink;
+        
+        // For Safari on iOS, use iframe method
+        if (isSafari && isIOS) {
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = CONFIG.deepLink;
+          document.body.appendChild(iframe);
+          
+          // Fallback after timeout
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            if (!appOpened) {
+              console.log('Deep link failed, showing fallback');
+              fallbackToAppStore();
+            }
+          }, 2000);
+        } else {
+          // For other browsers, use window.location
+          window.location.href = CONFIG.deepLink;
+        }
       }
       
       // Fallback to app store
       function fallbackToAppStore() {
-        console.log('App not detected, redirecting to app store');
+        console.log('App not detected, showing download options');
         document.getElementById('status').style.display = 'none';
         document.getElementById('buttons').style.display = 'block';
         
@@ -323,7 +392,13 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         }
       });
       
-      // iOS specific: window blur
+      // iOS/Safari specific: pagehide event
+      window.addEventListener('pagehide', function() {
+        appOpened = true;
+        console.log('Page hidden - app likely opened');
+      });
+      
+      // Window blur event
       window.addEventListener('blur', function() {
         appOpened = true;
         console.log('Window blurred - app likely opened');
@@ -331,18 +406,30 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       
       // Page load handler
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('Platform detected:', { isIOS, isAndroid });
+        console.log('Platform detected:', { isIOS, isAndroid, isSafari });
         console.log('Referrer:', referrer);
         
-        // Open app immediately
-        openApp();
-        
-        // Fallback after delay
-        setTimeout(() => {
-          if (!appOpened) {
-            fallbackToAppStore();
-          }
-        }, isFromSocialMedia ? 3000 : 2500); // Longer delay for social media
+        // For Safari, show button immediately instead of auto-redirect
+        if (isSafari && isIOS) {
+          document.getElementById('status').style.display = 'none';
+          document.getElementById('buttons').style.display = 'block';
+          document.getElementById('openAppBtn').style.display = 'block';
+          
+          // Auto-click the button after a brief delay (Safari allows this)
+          setTimeout(() => {
+            document.getElementById('openAppBtn').click();
+          }, 500);
+        } else {
+          // For non-Safari, try immediate redirect
+          openApp();
+          
+          // Fallback after delay
+          setTimeout(() => {
+            if (!appOpened) {
+              fallbackToAppStore();
+            }
+          }, isFromSocialMedia ? 3000 : 2500);
+        }
       });
       
       // Handle manual "Open in App" button
@@ -350,7 +437,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         e.preventDefault();
         openApp();
         
-        // Double fallback
+        // Double fallback for button click
         setTimeout(() => {
           if (!appOpened) {
             if (isIOS) {
@@ -359,18 +446,16 @@ function generateJobPage(linkData, jobDetails, appConfig) {
               window.location.href = CONFIG.androidStore;
             }
           }
-        }, 1500);
+        }, 2000);
       });
       
       // Handle store button clicks
       document.getElementById('iosBtn')?.addEventListener('click', function(e) {
         console.log('iOS download clicked');
-        // Optional: Track this click
       });
       
       document.getElementById('androidBtn')?.addEventListener('click', function(e) {
         console.log('Android download clicked');
-        // Optional: Track this click
       });
     </script>
     
@@ -406,6 +491,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       .job-header {
         text-align: center;
         margin-bottom: 25px;
+        position: relative;
       }
       h1 {
         color: #333;
@@ -420,6 +506,24 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         margin-bottom: 12px;
         font-weight: 600;
       }
+      .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .job-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-bottom: 20px;
+      }
       .job-info {
         background: #f8f9ff;
         border-radius: 12px;
@@ -433,19 +537,67 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         margin-bottom: 15px;
         line-height: 1.6;
       }
-      .compensation, .location {
+      .compensation, .location, .task-type, .workers-info {
         color: #555;
         font-size: 14px;
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         gap: 8px;
+        font-weight: 500;
       }
       .compensation:before {
         content: "💰";
       }
       .location:before {
         content: "📍";
+      }
+      .task-type:before {
+        content: "🏷️";
+      }
+      .workers-info:before {
+        content: "👥";
+      }
+      .posted-by {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .poster-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #667eea;
+      }
+      .poster-avatar-placeholder {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .poster-info {
+        flex: 1;
+      }
+      .poster-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+      .poster-bio {
+        color: #666;
+        font-size: 13px;
+        line-height: 1.4;
       }
       .status {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -539,18 +691,25 @@ function generateJobPage(linkData, jobDetails, appConfig) {
     <div class="container">
       <div class="logo">📌</div>
       
+      ${imageUrl !== "https://buez-app.vercel.app/logo.png" ? `<img src="${imageUrl}" alt="${jobTitle}" class="job-image">` : ''}
+      
       <div class="job-header">
         <h1>${jobTitle}</h1>
         ${company ? `<div class="company">${company}</div>` : ""}
+        ${statusBadge}
       </div>
       
+      ${postedByInfo}
+      
       ${
-        description || compensationInfo || locationInfo
+        description || compensationInfo || locationInfo || taskTypeInfo || workersInfo
           ? `
       <div class="job-info">
         ${description ? `<div class="description">${description}</div>` : ""}
+        ${taskTypeInfo}
         ${compensationInfo}
         ${locationInfo}
+        ${workersInfo}
       </div>
       `
           : ""
@@ -567,9 +726,9 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         </button>
         
         <div class="store-buttons">
-         <a href="${iosStoreUrl}" class="btn btn-secondary" id="iosBtn" style="display: none;">
-  ${appConfig.useTestFlight ? "✈️ Join TestFlight Beta" : "📱 Download for iOS"}
-</a>
+          <a href="${iosStoreUrl}" class="btn btn-secondary" id="iosBtn" style="display: none;">
+            ${appConfig.useTestFlight ? "✈️ Join TestFlight Beta" : "📱 Download for iOS"}
+          </a>
           <a href="${androidStoreUrl}" class="btn btn-secondary" id="androidBtn" style="display: none;">
             🤖 Download for Android
           </a>
