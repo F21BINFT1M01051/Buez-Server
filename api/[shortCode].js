@@ -4,7 +4,7 @@ const { db } = require("../firebaseAdmin");
 const APP_CONFIG = {
   urlScheme: "buez",
   iosAppId: "6753902802",
-  iosTestFlightUrl: "https://testflight.apple.com/join/UsnNJ7cj",
+  iosTestFlightUrl: "https://testflight.apple.com/join/ZcR7R163",
   androidPackage: "com.adamburg.Buez",
   appName: "Buez",
   useTestFlight: true, // Set to false when publishing to App Store
