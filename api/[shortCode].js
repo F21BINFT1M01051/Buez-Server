@@ -1,4 +1,4 @@
-import { admin } from "../firebaseAdmin";
+const { admin } = require("../firebaseAdmin");
 const { db } = require("../firebaseAdmin");
 
 const APP_CONFIG = {
@@ -14,8 +14,6 @@ const APP_CONFIG = {
 async function trackClick(shortCode, req) {
   try {
     const linkRef = db.collection("shareLinks").doc(shortCode);
-
-    // Increment click count atomically
     await linkRef.update({
       clicks: admin.firestore.FieldValue.increment(1),
       lastClickedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -35,7 +33,6 @@ async function trackClick(shortCode, req) {
       });
     } catch (analyticsError) {
       console.error("Analytics logging failed:", analyticsError);
-      // Don't fail the main request
     }
   } catch (error) {
     console.error("Error tracking click:", error);
@@ -62,26 +59,24 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Get link data from Firebase
     const linkDoc = await db.collection("shareLinks").doc(shortCode).get();
 
     if (!linkDoc.exists) {
       return sendErrorPage(
         res,
         "Link Not Found",
-        "This share link has expired or doesn't exist.",
+        "This share link has expired or doesn't exist."
       );
     }
 
     const data = linkDoc.data();
-
-    // Check if link is active and not expired
     const now = new Date();
+
     if (!data.isActive) {
       return sendErrorPage(
         res,
         "Link Deactivated",
-        "This share link has been deactivated.",
+        "This share link has been deactivated."
       );
     }
 
@@ -89,7 +84,6 @@ module.exports = async (req, res) => {
       return sendErrorPage(res, "Link Expired", "This share link has expired.");
     }
 
-    // Fetch additional job details
     let jobDetails = {};
     try {
       if (data.jobId) {
@@ -103,15 +97,11 @@ module.exports = async (req, res) => {
       }
     } catch (jobError) {
       console.error("Error fetching job details:", jobError);
-      // Continue without job details
     }
 
-    // Track the click
     await trackClick(shortCode, req);
 
-    // Generate HTML page
     const html = generateJobPage(data, jobDetails, APP_CONFIG);
-
     res.setHeader("Content-Type", "text/html");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.status(200).send(html);
@@ -120,7 +110,7 @@ module.exports = async (req, res) => {
     return sendErrorPage(
       res,
       "Server Error",
-      "An error occurred while processing your request.",
+      "An error occurred while processing your request."
     );
   }
 };
@@ -134,14 +124,10 @@ function sendErrorPage(res, title, message) {
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>${title} - Buez</title>
       <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
           min-height: 100vh;
           display: flex;
           align-items: center;
@@ -149,41 +135,27 @@ function sendErrorPage(res, title, message) {
           padding: 20px;
         }
         .container {
-          background: white;
+          background: rgba(255,255,255,0.05);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.1);
           padding: 40px;
-          border-radius: 20px;
+          border-radius: 24px;
           text-align: center;
           max-width: 400px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          width: 100%;
         }
-        .emoji {
-          font-size: 64px;
-          margin-bottom: 20px;
-          display: block;
-        }
-        h1 {
-          color: #333;
-          margin-bottom: 10px;
-          font-size: 24px;
-        }
-        p {
-          color: #666;
-          margin-bottom: 20px;
-          line-height: 1.6;
-        }
+        .emoji { font-size: 64px; margin-bottom: 20px; display: block; }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 24px; }
+        p { color: rgba(255,255,255,0.6); margin-bottom: 20px; line-height: 1.6; }
         .btn {
           display: inline-block;
-          padding: 12px 24px;
-          background: #667eea;
+          padding: 14px 28px;
+          background: linear-gradient(135deg, #667eea, #764ba2);
           color: white;
           text-decoration: none;
-          border-radius: 8px;
+          border-radius: 12px;
           font-weight: 600;
-          transition: background 0.3s;
           margin-top: 10px;
-        }
-        .btn:hover {
-          background: #5568d3;
         }
       </style>
     </head>
@@ -200,574 +172,781 @@ function sendErrorPage(res, title, message) {
 }
 
 function generateJobPage(linkData, jobDetails, appConfig) {
-  const jobTitle = linkData.jobTitle || jobDetails.customTaskTitle || "Job Opportunity";
+  const jobTitle =
+    linkData.jobTitle || jobDetails.customTaskTitle || "Job Opportunity";
   const description = linkData.jobDescription || jobDetails.description || "";
-  const company = linkData.companyName || jobDetails.user?.userName || "";
+  const company =
+    linkData.companyName || jobDetails.user?.userName || "";
   const taskType = jobDetails.taskType || "";
   const numberOfWorkers = jobDetails.numberOfWorkers || 1;
   const slotsAvailable = jobDetails.slotsAvailable || numberOfWorkers;
   const isBulkRequest = jobDetails.isBulkRequest || false;
 
-  // Prepare meta description
   const metaDescription =
     description?.length > 150
       ? description.substring(0, 147) + "..."
       : description;
 
-  // Build image URL if available
-  let imageUrl = "https://buez-app.vercel.app/logo.png"; // Default logo
+  let imageUrl = "https://buez-app.vercel.app/logo.png";
   if (jobDetails.imageUrls && jobDetails.imageUrls.length > 0) {
     imageUrl = jobDetails.imageUrls[0];
   }
 
   const deepLinkUrl = `${appConfig.urlScheme}://job/${linkData.jobId}`;
-  const iosStoreUrl = appConfig.useTestFlight && appConfig.iosTestFlightUrl
-    ? appConfig.iosTestFlightUrl
-    : `https://apps.apple.com/app/id${appConfig.iosAppId}`;
+  const universalLinkUrl = `https://buez-app.vercel.app/job/${linkData.jobId}`;
+
+  const iosStoreUrl =
+    appConfig.useTestFlight && appConfig.iosTestFlightUrl
+      ? appConfig.iosTestFlightUrl
+      : `https://apps.apple.com/app/id${appConfig.iosAppId}`;
   const androidStoreUrl = `https://play.google.com/store/apps/details?id=${appConfig.androidPackage}`;
 
-  // Add compensation info with currency
   let compensationInfo = "";
-  if (jobDetails.compensationType === "Monitarely" && jobDetails.monitarily) {
+  if (
+    jobDetails.compensationType === "Monitarely" &&
+    jobDetails.monitarily
+  ) {
     const currencySymbol = jobDetails.currencyInfo?.symbol || "$";
-    const amount = jobDetails.monitarily;
-    compensationInfo = `<div class="compensation">Compensation: ${currencySymbol}${amount}</div>`;
+    compensationInfo = `<div class="info-chip"><span class="chip-icon">💰</span><span>${currencySymbol}${jobDetails.monitarily}</span></div>`;
   } else if (jobDetails.otherCompensation) {
-    compensationInfo = `<div class="compensation">Compensation: ${jobDetails.otherCompensation}</div>`;
+    compensationInfo = `<div class="info-chip"><span class="chip-icon">💰</span><span>${jobDetails.otherCompensation}</span></div>`;
   }
 
-  // Add location if available
   let locationInfo = "";
   if (jobDetails.address?.name) {
-    locationInfo = `<div class="location">Location: ${jobDetails.address.name}</div>`;
+    locationInfo = `<div class="info-chip"><span class="chip-icon">📍</span><span>${jobDetails.address.name}</span></div>`;
   }
 
-  // Add task type
   let taskTypeInfo = "";
   if (taskType) {
-    taskTypeInfo = `<div class="task-type">Category: ${taskType}</div>`;
+    taskTypeInfo = `<div class="info-chip"><span class="chip-icon">🏷️</span><span>${taskType}</span></div>`;
   }
 
-  // Add slots/workers info
   let workersInfo = "";
   if (isBulkRequest && numberOfWorkers > 1) {
-    workersInfo = `<div class="workers-info">Workers Needed: ${numberOfWorkers} • Available Slots: ${slotsAvailable}</div>`;
+    workersInfo = `<div class="info-chip"><span class="chip-icon">👥</span><span>${numberOfWorkers} Workers Needed · ${slotsAvailable} Slots Open</span></div>`;
   }
 
-  // Add posted by info
   let postedByInfo = "";
   if (jobDetails.user?.userName) {
     const profileImage = jobDetails.user?.profileImage || "";
     const biography = jobDetails.user?.biography || "";
-    
     postedByInfo = `
       <div class="posted-by">
-        ${profileImage ? `<img src="${profileImage}" alt="${jobDetails.user.userName}" class="poster-avatar">` : '<div class="poster-avatar-placeholder">👤</div>'}
+        ${
+          profileImage
+            ? `<img src="${profileImage}" alt="${jobDetails.user.userName}" class="poster-avatar">`
+            : '<div class="poster-avatar-placeholder">👤</div>'
+        }
         <div class="poster-info">
           <div class="poster-name">${jobDetails.user.userName}</div>
-          ${biography ? `<div class="poster-bio">${biography.length > 100 ? biography.substring(0, 97) + '...' : biography}</div>` : ''}
+          ${
+            biography
+              ? `<div class="poster-bio">${biography.length > 100 ? biography.substring(0, 97) + "..." : biography}</div>`
+              : ""
+          }
         </div>
       </div>
     `;
   }
 
-  // Add status badge
   let statusBadge = "";
   if (jobDetails.status) {
-    const statusColor = jobDetails.status === "Active" ? "#10b981" : 
-                       jobDetails.status === "Completed" ? "#6b7280" : "#f59e0b";
-    statusBadge = `<div class="status-badge" style="background-color: ${statusColor};">${jobDetails.status}</div>`;
+    const statusColor =
+      jobDetails.status === "Active"
+        ? "#10b981"
+        : jobDetails.status === "Completed"
+        ? "#6b7280"
+        : "#f59e0b";
+    statusBadge = `<span class="status-badge" style="background:${statusColor}20;color:${statusColor};border-color:${statusColor}40;">${jobDetails.status}</span>`;
   }
 
-  return `
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>${jobTitle} - ${appConfig.appName}</title>
-    
-    <!-- Primary Meta Tags -->
-    <meta name="title" content="${jobTitle} - ${appConfig.appName}">
-    <meta name="description" content="${metaDescription}">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://buez-server-khaki.vercel.app/">
-    <meta property="og:title" content="${jobTitle} - ${appConfig.appName}">
-    <meta property="og:description" content="${metaDescription}">
-    <meta property="og:image" content="${imageUrl}">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://buez-server-khaki.vercel.app/">
-    <meta property="twitter:title" content="${jobTitle} - ${appConfig.appName}">
-    <meta property="twitter:description" content="${metaDescription}">
-    <meta property="twitter:image" content="${imageUrl}">
-    
-    <!-- App Links -->
-    <meta property="al:ios:url" content="${deepLinkUrl}">
-    <meta property="al:ios:app_store_id" content="${appConfig.iosAppId}">
-    <meta property="al:ios:app_name" content="${appConfig.appName}">
-    <meta property="al:android:url" content="${deepLinkUrl}">
-    <meta property="al:android:app_name" content="${appConfig.appName}">
-    <meta property="al:android:package" content="${appConfig.androidPackage}">
-    <meta property="al:web:url" content="https://buez-server-khaki.vercel.app/">
-    
-    <script>
-      // Configuration
-      const CONFIG = {
-        deepLink: '${deepLinkUrl}',
-        iosStore: '${iosStoreUrl}',
-        androidStore: '${androidStoreUrl}',
-        appName: '${appConfig.appName}',
-        useTestFlight: ${appConfig.useTestFlight}
-      };
-      
-      // Platform detection
-      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-      const isAndroid = /android/i.test(userAgent);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
-      let appOpened = false;
-      let attemptedOpen = false;
-      let redirectTimer = null;
-      
-      // Track if user came from social media
-      const referrer = document.referrer;
-      const isFromSocialMedia = referrer.includes('facebook.com') || 
-                               referrer.includes('whatsapp.com') ||
-                               referrer.includes('twitter.com') ||
-                               referrer.includes('instagram.com') ||
-                               referrer.includes('linkedin.com');
-      
-      // Open app - Safari compatible with better error handling
-      function openApp() {
-        if (attemptedOpen) return;
-        attemptedOpen = true;
-        
-        console.log('Attempting to open app with:', CONFIG.deepLink);
-        
-        // For Safari on iOS, try deep link with quick fallback
-        if (isSafari && isIOS) {
-          const start = Date.now();
-          window.location.href = CONFIG.deepLink;
-          
-          // Quick fallback - if page is still visible after 1.5 seconds, app didn't open
-          redirectTimer = setTimeout(() => {
-            const elapsed = Date.now() - start;
-            // If we're still here and page is visible, app didn't open
-            if (!document.hidden && elapsed < 2000) {
-              console.log('App not detected, redirecting to store');
-              appOpened = false;
-              clearTimeout(redirectTimer);
-              // Redirect immediately to TestFlight/App Store
-              window.location.href = CONFIG.iosStore;
-            }
-          }, 1500);
-          
-        } else if (isAndroid) {
-          // Android - try deep link with quick fallback
-          const start = Date.now();
-          window.location.href = CONFIG.deepLink;
-          
-          setTimeout(() => {
-            if (!document.hidden) {
-              window.location.href = CONFIG.androidStore;
-            }
-          }, 1500);
-          
-        } else {
-          // Desktop or other - show download options
-          fallbackToAppStore();
-        }
-      }
-      
-      // Fallback to app store
-      function fallbackToAppStore() {
-        console.log('Showing download options');
-        if (redirectTimer) clearTimeout(redirectTimer);
-        
-        document.getElementById('status').style.display = 'none';
-        document.getElementById('buttons').style.display = 'block';
-        
-        if (isIOS) {
-          document.getElementById('iosBtn').style.display = 'inline-block';
-        } else if (isAndroid) {
-          document.getElementById('androidBtn').style.display = 'inline-block';
-        } else {
-          // Desktop - show both
-          document.getElementById('iosBtn').style.display = 'inline-block';
-          document.getElementById('androidBtn').style.display = 'inline-block';
-        }
-      }
-      
-      // Track visibility changes (app opening)
-      document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-          appOpened = true;
-          if (redirectTimer) clearTimeout(redirectTimer);
-          console.log('App opened successfully (visibility change)');
-        }
-      });
-      
-      // iOS/Safari specific: pagehide event
-      window.addEventListener('pagehide', function() {
-        appOpened = true;
-        if (redirectTimer) clearTimeout(redirectTimer);
-        console.log('Page hidden - app likely opened');
-      });
-      
-      // Window blur event
-      window.addEventListener('blur', function() {
-        appOpened = true;
-        if (redirectTimer) clearTimeout(redirectTimer);
-        console.log('Window blurred - app likely opened');
-      });
-      
-      // Prevent showing error by catching it
-      window.addEventListener('error', function(e) {
-        console.log('Error caught:', e);
-        e.preventDefault();
-        return false;
-      });
-      
-      // Page load handler
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('Platform detected:', { isIOS, isAndroid, isSafari });
-        console.log('Referrer:', referrer);
-        
-        // For Safari on iOS, show button first
-        if (isSafari && isIOS) {
-          // Show UI immediately
-          document.getElementById('status').style.display = 'none';
-          document.getElementById('buttons').style.display = 'block';
-          document.getElementById('openAppBtn').style.display = 'block';
-          
-          // Auto-trigger after brief delay
-          setTimeout(() => {
-            if (!attemptedOpen) {
-              document.getElementById('openAppBtn').click();
-            }
-          }, 800);
-        } else {
-          // For non-Safari, try immediate redirect
-          setTimeout(() => {
-            openApp();
-          }, 500);
-        }
-      });
-      
-      // Handle manual "Open in App" button
-      document.getElementById('openAppBtn')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        if (isIOS) {
-          // Try deep link first, then fallback to store
-          openApp();
-        } else if (isAndroid) {
-          // Try app first, then store
-          openApp();
-        } else {
-          // Desktop - show options
-          fallbackToAppStore();
-        }
-      });
-      
-      // Handle store button clicks
-      document.getElementById('iosBtn')?.addEventListener('click', function(e) {
-        console.log('iOS download clicked');
-      });
-      
-      document.getElementById('androidBtn')?.addEventListener('click', function(e) {
-        console.log('Android download clicked');
-      });
-    </script>
-    
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-      .container {
-        background: white;
-        border-radius: 20px;
-        padding: 40px 30px;
-        max-width: 500px;
-        width: 100%;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      }
-      .logo {
-        font-size: 48px;
-        text-align: center;
-        margin-bottom: 20px;
-        color: #667eea;
-      }
-      .job-header {
-        text-align: center;
-        margin-bottom: 25px;
-        position: relative;
-      }
-      h1 {
-        color: #333;
-        font-size: 24px;
-        margin-bottom: 8px;
-        line-height: 1.4;
-        font-weight: 700;
-      }
-      .company {
-        color: #667eea;
-        font-size: 18px;
-        margin-bottom: 12px;
-        font-weight: 600;
-      }
-      .status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        color: white;
-        font-size: 12px;
-        font-weight: 600;
-        margin-top: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-      .job-image {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-bottom: 20px;
-      }
-      .job-info {
-        background: #f8f9ff;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 25px;
-        border-left: 4px solid #667eea;
-      }
-      .description {
-        color: #666;
-        font-size: 15px;
-        margin-bottom: 15px;
-        line-height: 1.6;
-      }
-      .compensation, .location, .task-type, .workers-info {
-        color: #555;
-        font-size: 14px;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 500;
-      }
-      .compensation:before {
-        content: "💰";
-      }
-      .location:before {
-        content: "📍";
-      }
-      .task-type:before {
-        content: "🏷️";
-      }
-      .workers-info:before {
-        content: "👥";
-      }
-      .posted-by {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .poster-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid #667eea;
-      }
-      .poster-avatar-placeholder {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: #e5e7eb;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-      }
-      .poster-info {
-        flex: 1;
-      }
-      .poster-name {
-        font-weight: 600;
-        color: #333;
-        font-size: 15px;
-        margin-bottom: 4px;
-      }
-      .poster-bio {
-        color: #666;
-        font-size: 13px;
-        line-height: 1.4;
-      }
-      .status {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        color: white;
-        font-size: 15px;
-        font-weight: 500;
-        text-align: center;
-      }
-      .spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid rgba(255,255,255,0.3);
-        border-top: 3px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 10px;
-        vertical-align: middle;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      .buttons {
-        display: none;
-      }
-      .btn {
-        display: block;
-        width: 100%;
-        padding: 16px 32px;
-        margin: 12px 0;
-        background: #667eea;
-        color: white;
-        text-decoration: none;
-        border-radius: 12px;
-        font-weight: 600;
-        font-size: 16px;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-      }
-      .btn:hover {
-        background: #5568d3;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-      }
-      .btn:active {
-        transform: translateY(0);
-      }
-      .btn-secondary {
-        background: white;
-        color: #667eea;
-        border: 2px solid #667eea;
-        box-shadow: none;
-      }
-      .btn-secondary:hover {
-        background: #f8f9ff;
-      }
-      .store-buttons {
-        margin-top: 10px;
-      }
-      .footer {
-        margin-top: 30px;
-        color: #999;
-        font-size: 13px;
-        text-align: center;
-        border-top: 1px solid #eee;
-        padding-top: 20px;
-      }
-      .stats {
-        font-size: 12px;
-        color: #888;
-        margin-top: 5px;
-      }
-      @media (max-width: 480px) {
-        .container {
-          padding: 30px 20px;
-        }
-        h1 {
-          font-size: 20px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      
-      ${imageUrl !== "https://buez-app.vercel.app/logo.png" ? `<img src="${imageUrl}" alt="${jobTitle}" class="job-image">` : ''}
-      
-      <div class="job-header">
-        <h1>${jobTitle}</h1>
-        ${company ? `<div class="company">${company}</div>` : ""}
-        ${statusBadge}
-      </div>
-      
-      ${postedByInfo}
-      
-      ${
-        description || compensationInfo || locationInfo || taskTypeInfo || workersInfo
-          ? `
-      <div class="job-info">
-        ${description ? `<div class="description">${description}</div>` : ""}
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>${jobTitle} - ${appConfig.appName}</title>
+
+  <!-- Primary Meta -->
+  <meta name="title" content="${jobTitle} - ${appConfig.appName}">
+  <meta name="description" content="${metaDescription}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${universalLinkUrl}">
+  <meta property="og:title" content="${jobTitle} - ${appConfig.appName}">
+  <meta property="og:description" content="${metaDescription}">
+  <meta property="og:image" content="${imageUrl}">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="${universalLinkUrl}">
+  <meta property="twitter:title" content="${jobTitle} - ${appConfig.appName}">
+  <meta property="twitter:description" content="${metaDescription}">
+  <meta property="twitter:image" content="${imageUrl}">
+
+  <!-- App Links (Facebook App Links Protocol) -->
+  <meta property="al:ios:url" content="${deepLinkUrl}">
+  <meta property="al:ios:app_store_id" content="${appConfig.iosAppId}">
+  <meta property="al:ios:app_name" content="${appConfig.appName}">
+  <meta property="al:android:url" content="${deepLinkUrl}">
+  <meta property="al:android:app_name" content="${appConfig.appName}">
+  <meta property="al:android:package" content="${appConfig.androidPackage}">
+  <meta property="al:web:url" content="${universalLinkUrl}">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+      --brand: #7C5CFC;
+      --brand-light: #9B82FF;
+      --brand-dark: #5B3FD4;
+      --accent: #FF6B6B;
+      --surface: #0D0B14;
+      --surface-2: #16121F;
+      --surface-3: #1E1830;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(124,92,252,0.4);
+      --text-primary: #F0ECFF;
+      --text-secondary: rgba(240,236,255,0.55);
+      --text-muted: rgba(240,236,255,0.3);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      min-height: 100%;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--surface);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px 40px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Background ambient glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124,92,252,0.18) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -10%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,107,107,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      max-width: 480px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+      animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Job Image */
+    .job-image-wrap {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+    }
+    .job-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .job-image-wrap::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      background: linear-gradient(transparent, var(--surface-2));
+    }
+
+    /* App brand bar */
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px 0;
+    }
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      background: linear-gradient(135deg, var(--brand-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .brand-tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Main content area */
+    .content {
+      padding: 20px 24px 24px;
+    }
+
+    /* Job Header */
+    .job-header { margin-bottom: 20px; }
+    .job-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.3;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .job-company {
+      font-size: 15px;
+      color: var(--brand-light);
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+
+    /* Posted by */
+    .posted-by {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 18px;
+    }
+    .poster-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--brand);
+      flex-shrink: 0;
+    }
+    .poster-avatar-placeholder {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--surface-3);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .poster-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .poster-bio {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* Job info section */
+    .job-info {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .description {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .info-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .chip-icon { font-size: 14px; }
+
+    /* ─── CTA Section ─── */
+    .cta-section { display: flex; flex-direction: column; gap: 10px; }
+
+    /* Primary open-in-app button */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 17px 24px;
+      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 24px rgba(124,92,252,0.35);
+      -webkit-appearance: none;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:active::before { opacity: 1; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary .btn-icon { font-size: 20px; }
+
+    /* Secondary store buttons */
+    .btn-secondary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 24px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      -webkit-appearance: none;
+    }
+    .btn-secondary:hover, .btn-secondary:active {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+      background: rgba(124,92,252,0.06);
+    }
+
+    /* Status / loading state */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px;
+      background: rgba(124,92,252,0.08);
+      border: 1px solid rgba(124,92,252,0.2);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--brand-light);
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(124,92,252,0.25);
+      border-top-color: var(--brand-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Success state */
+    .status-success {
+      background: rgba(16,185,129,0.08);
+      border-color: rgba(16,185,129,0.2);
+      color: #10b981;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    .footer-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .footer-brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      background: linear-gradient(135deg, var(--brand-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    @media (max-width: 360px) {
+      .job-title { font-size: 19px; }
+      .content { padding: 16px 18px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  ${
+    imageUrl !== "https://buez-app.vercel.app/logo.png"
+      ? `<div class="job-image-wrap"><img src="${imageUrl}" alt="${jobTitle}" loading="lazy"></div>`
+      : ""
+  }
+
+  <div class="brand-bar">
+    <span class="brand-name">${appConfig.appName}</span>
+    <span class="brand-tag">Job Opportunity</span>
+  </div>
+
+  <div class="content">
+
+    <!-- Job header -->
+    <div class="job-header">
+      <div class="job-title">${jobTitle}</div>
+      ${company ? `<div class="job-company">${company}</div>` : ""}
+      ${statusBadge}
+    </div>
+
+    <!-- Posted by -->
+    ${postedByInfo}
+
+    <!-- Job details -->
+    ${
+      description || compensationInfo || locationInfo || taskTypeInfo || workersInfo
+        ? `
+    <div class="job-info">
+      ${description ? `<div class="description">${description}</div>` : ""}
+      <div class="chips">
         ${taskTypeInfo}
         ${compensationInfo}
         ${locationInfo}
         ${workersInfo}
       </div>
-      `
-          : ""
-      }
-      
-      <div class="status" id="status">
+    </div>`
+        : ""
+    }
+
+    <!-- CTA -->
+    <div class="cta-section" id="ctaSection">
+
+      <!-- Loading state (shown briefly on Android / desktop) -->
+      <div class="status-bar" id="statusBar" style="display:none;">
         <div class="spinner"></div>
-        Opening in ${appConfig.appName} app...
+        <span id="statusText">Opening ${appConfig.appName}…</span>
       </div>
-      
-      <div class="buttons" id="buttons">
-        <button class="btn" id="openAppBtn">
-          Open in ${appConfig.appName}
-        </button>
-        
-        <div class="store-buttons">
-          <a href="${iosStoreUrl}" class="btn btn-secondary" id="iosBtn" style="display: none;">
-            ${appConfig.useTestFlight ? "✈️ Join TestFlight Beta" : "📱 Download for iOS"}
-          </a>
-          <a href="${androidStoreUrl}" class="btn btn-secondary" id="androidBtn" style="display: none;">
-            🤖 Download for Android
-          </a>
-        </div>
-      </div>
-      
-      <div class="footer">
-        <div>Powered by ${appConfig.appName}</div>
-        <div class="stats">
-          • Tap "Open in ${appConfig.appName}" to view and apply
-          • Download the app if you don't have it
-        </div>
-      </div>
+
+      <!-- Open in App button -->
+      <button class="btn-primary" id="openAppBtn" onclick="handleOpenApp()">
+        <span class="btn-icon">📱</span>
+        Open in ${appConfig.appName}
+      </button>
+
+      <!-- Store fallback buttons (hidden until needed) -->
+      <a href="${iosStoreUrl}" class="btn-secondary" id="iosBtn" style="display:none;" onclick="logStoreClick('ios')">
+        ${appConfig.useTestFlight ? "✈️ Join TestFlight Beta" : "📱 Download on the App Store"}
+      </a>
+      <a href="${androidStoreUrl}" class="btn-secondary" id="androidBtn" style="display:none;" onclick="logStoreClick('android')">
+        🤖 Get it on Google Play
+      </a>
+
     </div>
-  </body>
-  </html>
-  `;
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">
+      Powered by <span class="footer-brand">${appConfig.appName}</span><br>
+      Tap "Open in ${appConfig.appName}" to view and apply for this job
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  CONFIG (injected server-side)
+// ─────────────────────────────────────────────
+var CONFIG = {
+  deepLink:     '${deepLinkUrl}',
+  iosStore:     '${iosStoreUrl}',
+  androidStore: '${androidStoreUrl}',
+  appName:      '${appConfig.appName}',
+  useTestFlight: ${appConfig.useTestFlight}
+};
+
+// ─────────────────────────────────────────────
+//  PLATFORM DETECTION
+// ─────────────────────────────────────────────
+var ua         = navigator.userAgent || navigator.vendor || window.opera || '';
+var isIOS      = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+var isAndroid  = /android/i.test(ua);
+// Safari: no "Chrome" string, has "Safari"
+var isSafari   = isIOS && /Safari/i.test(ua) && !/CriOS|FxiOS|OPiOS|mercury/i.test(ua);
+// Chrome on iOS (CriOS)
+var isChromeIOS = isIOS && /CriOS/i.test(ua);
+
+console.log('[Buez] Platform:', { isIOS: isIOS, isAndroid: isAndroid, isSafari: isSafari, isChromeIOS: isChromeIOS });
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+var appOpened    = false;
+var fallbackTimer = null;
+
+// ─────────────────────────────────────────────
+//  VISIBILITY / BLUR LISTENERS
+//  (detect when the browser goes to background = app opened)
+// ─────────────────────────────────────────────
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) {
+    appOpened = true;
+    clearTimeout(fallbackTimer);
+    console.log('[Buez] visibilitychange → app opened');
+  }
+});
+window.addEventListener('pagehide', function () {
+  appOpened = true;
+  clearTimeout(fallbackTimer);
+});
+window.addEventListener('blur', function () {
+  appOpened = true;
+  clearTimeout(fallbackTimer);
+});
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function setStatus(text, isSuccess) {
+  var bar = document.getElementById('statusBar');
+  if (!bar) return;
+  document.getElementById('statusText').textContent = text;
+  bar.style.display = 'flex';
+  if (isSuccess) bar.classList.add('status-success');
+}
+
+function hideStatus() {
+  var bar = document.getElementById('statusBar');
+  if (bar) bar.style.display = 'none';
+}
+
+function showStoreButtons() {
+  hideStatus();
+  if (isIOS) {
+    var b = document.getElementById('iosBtn');
+    if (b) b.style.display = 'flex';
+  } else if (isAndroid) {
+    var b = document.getElementById('androidBtn');
+    if (b) b.style.display = 'flex';
+  } else {
+    // Desktop — show both
+    var bi = document.getElementById('iosBtn');
+    var ba = document.getElementById('androidBtn');
+    if (bi) bi.style.display = 'flex';
+    if (ba) ba.style.display = 'flex';
+  }
+}
+
+function logStoreClick(platform) {
+  console.log('[Buez] Store button clicked:', platform);
+}
+
+// ─────────────────────────────────────────────
+//  CORE: TRY TO OPEN THE APP
+// ─────────────────────────────────────────────
+
+/**
+ * Safari on iOS
+ * ─────────────
+ * window.location deep links trigger an ugly "Cannot Open Page" alert
+ * when the app is not installed.  The hidden-<iframe> technique silently
+ * attempts the custom scheme; if the app IS installed iOS will open it
+ * and the page goes into background (visibilitychange fires).
+ * If not installed the iframe just fails quietly — no dialog.
+ */
+function tryOpenSafari() {
+  console.log('[Buez] Strategy: Safari hidden-iframe');
+  appOpened = false;
+
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;border:0;';
+  iframe.src = CONFIG.deepLink;
+  document.body.appendChild(iframe);
+
+  // Give iOS 2.5 s to switch apps; if still here → app not installed
+  fallbackTimer = setTimeout(function () {
+    document.body.removeChild(iframe);
+    if (!appOpened) {
+      console.log('[Buez] Safari: app not detected → store');
+      showStoreButtons();
+    }
+  }, 2500);
+}
+
+/**
+ * Chrome on iOS (CriOS)
+ * ──────────────────────
+ * CriOS blocks iframes with custom schemes.  Use window.location directly.
+ * Chrome on iOS also won't show the ugly alert — it just silently fails,
+ * so direct assignment is safe here.
+ */
+function tryOpenChromeIOS() {
+  console.log('[Buez] Strategy: Chrome iOS window.location');
+  appOpened = false;
+  window.location.href = CONFIG.deepLink;
+
+  fallbackTimer = setTimeout(function () {
+    if (!appOpened) {
+      console.log('[Buez] CriOS: app not detected → store');
+      showStoreButtons();
+    }
+  }, 2500);
+}
+
+/**
+ * Android (any browser)
+ * ──────────────────────
+ * Use Intent URL for Chrome; fall back to custom scheme for others.
+ * Intent URL lets Chrome launch the app directly and go to Play Store
+ * automatically if not installed — but we still set our own fallback
+ * for non-Chrome Android browsers.
+ */
+function tryOpenAndroid() {
+  var isChrome = /Chrome/.test(ua) && !/Chromium/.test(ua);
+  console.log('[Buez] Strategy: Android', isChrome ? '(Chrome Intent)' : '(direct)');
+  appOpened = false;
+
+  if (isChrome) {
+    // Intent URL — Chrome will open the app or redirect to Play Store natively
+    var intentUrl = CONFIG.deepLink.replace(
+      /^([a-z][a-z0-9+\-.]*):\/\//i,
+      'intent://'
+    ) + '#Intent;scheme=${appConfig.urlScheme};package=${appConfig.androidPackage};end;';
+    window.location.href = intentUrl;
+  } else {
+    window.location.href = CONFIG.deepLink;
+  }
+
+  fallbackTimer = setTimeout(function () {
+    if (!appOpened) {
+      console.log('[Buez] Android: app not detected → store');
+      window.location.href = CONFIG.androidStore;
+    }
+  }, 2500);
+}
+
+// ─────────────────────────────────────────────
+//  MAIN HANDLER — called by button click
+// ─────────────────────────────────────────────
+function handleOpenApp() {
+  console.log('[Buez] handleOpenApp triggered');
+
+  if (isIOS) {
+    if (isSafari) {
+      tryOpenSafari();
+    } else {
+      // Chrome iOS, Firefox iOS, etc.
+      tryOpenChromeIOS();
+    }
+  } else if (isAndroid) {
+    tryOpenAndroid();
+  } else {
+    // Desktop: just show download options
+    showStoreButtons();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ON PAGE LOAD
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  console.log('[Buez] DOMContentLoaded');
+
+  if (isIOS || isAndroid) {
+    // Auto-trigger after a short delay so user can see the page first
+    setTimeout(function () {
+      handleOpenApp();
+    }, 700);
+  } else {
+    // Desktop — show store buttons right away
+    showStoreButtons();
+  }
+});
+</script>
+
+</body>
+</html>`;
 }
