@@ -199,10 +199,7 @@ function generateJobPage(linkData, jobDetails, appConfig) {
   const androidStoreUrl = `https://play.google.com/store/apps/details?id=${appConfig.androidPackage}`;
 
   let compensationInfo = "";
-  if (
-    jobDetails.compensationType === "Monitarely" &&
-    jobDetails.monitarily
-  ) {
+  if (jobDetails.compensationType === "Monitarely" && jobDetails.monitarily) {
     const currencySymbol = jobDetails.currencyInfo?.symbol || "$";
     const amount = jobDetails.monitarily;
     compensationInfo = `<div class="compensation">Compensation: ${currencySymbol}${amount}</div>`;
@@ -471,6 +468,54 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         padding-top: 16px;
         line-height: 1.8;
       }
+
+      /* ── Debug Log Panel ── */
+      #debugPanel {
+        display: none;
+        margin-top: 20px;
+        background: #0f172a;
+        border-radius: 12px;
+        padding: 14px;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      #debugPanel .debug-title {
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        font-family: monospace;
+      }
+      #debugPanel .debug-entry {
+        font-family: monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        padding: 2px 0;
+        border-bottom: 1px solid #1e293b;
+      }
+      #debugPanel .debug-entry:last-child { border-bottom: none; }
+      #debugPanel .log-info  { color: #38bdf8; }
+      #debugPanel .log-success { color: #4ade80; }
+      #debugPanel .log-warn  { color: #facc15; }
+      #debugPanel .log-error { color: #f87171; }
+
+      #debugToggle {
+        display: block;
+        width: 100%;
+        margin-top: 12px;
+        padding: 8px;
+        background: transparent;
+        border: 1px dashed #d1d5db;
+        border-radius: 8px;
+        color: #9ca3af;
+        font-size: 11px;
+        cursor: pointer;
+        text-align: center;
+      }
+      #debugToggle:hover { border-color: #667eea; color: #667eea; }
+
       @media (max-width: 480px) {
         .container { padding: 28px 18px; }
         h1 { font-size: 20px; }
@@ -523,6 +568,13 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         </a>
       </div>
 
+      <!-- Debug toggle button — tap 3x to reveal panel -->
+      <button id="debugToggle">🔍 Debug Info (tap 3×)</button>
+      <div id="debugPanel">
+        <div class="debug-title">📋 Buez Deep Link Debug Log</div>
+        <div id="debugLog"></div>
+      </div>
+
       <div class="footer">
         Powered by ${appConfig.appName}<br>
         <span>Open the app to view details and apply</span>
@@ -541,66 +593,164 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       const ua = navigator.userAgent || navigator.vendor || window.opera;
       const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
       const isAndroid = /android/i.test(ua);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      const isChrome = /CriOS|Chrome/.test(ua);
+      const isInAppBrowser = /FBAN|FBAV|Instagram|WhatsApp|Line\\/|Twitter/i.test(ua);
 
-      // Show correct store button based on platform
+      // ── Debug Logger ──────────────────────────────────────────
+      let debugToggleCount = 0;
+
+      function log(message, type = 'info') {
+        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+        const entry = document.createElement('div');
+        entry.className = 'debug-entry log-' + type;
+        entry.textContent = '[' + timestamp + '] ' + message;
+        document.getElementById('debugLog').appendChild(entry);
+
+        // Always log to console too
+        const consoleFn = type === 'error' ? console.error
+                        : type === 'warn'  ? console.warn
+                        : console.log;
+        consoleFn('[Buez DeepLink][' + type.toUpperCase() + '] ' + message);
+
+        // Auto-scroll debug panel
+        const panel = document.getElementById('debugPanel');
+        panel.scrollTop = panel.scrollHeight;
+      }
+
+      // Reveal debug panel after 3 taps on the toggle button
+      document.getElementById('debugToggle').addEventListener('click', function () {
+        debugToggleCount++;
+        if (debugToggleCount >= 3) {
+          const panel = document.getElementById('debugPanel');
+          panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+          debugToggleCount = 0;
+        }
+      });
+      // ─────────────────────────────────────────────────────────
+
       document.addEventListener('DOMContentLoaded', function () {
-        if (isIOS) {
-          document.getElementById('iosBtn').style.display = 'block';
-        } else if (isAndroid) {
-          document.getElementById('androidBtn').style.display = 'block';
-        } else {
-          // Desktop — show both
-          document.getElementById('iosBtn').style.display = 'block';
-          document.getElementById('androidBtn').style.display = 'block';
+
+        // ── Log environment on load ──
+        log('=== Buez Deep Link Debug ===', 'info');
+        log('User Agent: ' + ua, 'info');
+        log('Platform → isIOS: ' + isIOS + ' | isAndroid: ' + isAndroid, 'info');
+        log('Browser → isSafari: ' + isSafari + ' | isChrome: ' + isChrome, 'info');
+        log('In-App Browser: ' + isInAppBrowser, isInAppBrowser ? 'warn' : 'info');
+        log('Deep Link URL: ' + CONFIG.deepLink, 'info');
+        log('iOS Store URL: ' + CONFIG.iosStore, 'info');
+        log('Android Store URL: ' + CONFIG.androidStore, 'info');
+        log('useTestFlight: ' + CONFIG.useTestFlight, 'info');
+
+        // Show in-app browser warning banner
+        if (isInAppBrowser && isIOS) {
+          log('WARNING: In-app browser detected on iOS — deep links may be blocked', 'warn');
+          const banner = document.createElement('div');
+          banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#856404;text-align:center;line-height:1.5;';
+          banner.innerHTML = '⚠️ For the best experience, tap <strong>··· → Open in Safari</strong>';
+          document.getElementById('buttons').insertAdjacentElement('beforebegin', banner);
         }
 
-        // "Open in App" button click handler
+        if (isInAppBrowser && isAndroid) {
+          log('WARNING: In-app browser detected on Android — deep links may be blocked', 'warn');
+          const banner = document.createElement('div');
+          banner.style.cssText = 'background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#856404;text-align:center;line-height:1.5;';
+          banner.innerHTML = '⚠️ For the best experience, tap <strong>⋮ → Open in Chrome</strong>';
+          document.getElementById('buttons').insertAdjacentElement('beforebegin', banner);
+        }
+
+        // Show correct store button
+        if (isIOS) {
+          document.getElementById('iosBtn').style.display = 'block';
+          log('Showing iOS store button', 'info');
+        } else if (isAndroid) {
+          document.getElementById('androidBtn').style.display = 'block';
+          log('Showing Android store button', 'info');
+        } else {
+          document.getElementById('iosBtn').style.display = 'block';
+          document.getElementById('androidBtn').style.display = 'block';
+          log('Desktop detected — showing both store buttons', 'warn');
+        }
+
+        // ── Open in App button ──
         document.getElementById('openAppBtn').addEventListener('click', function (e) {
           e.preventDefault();
+          log('--- "Open in App" button tapped ---', 'info');
 
-          // Desktop: no app available, scroll to store buttons
           if (!isIOS && !isAndroid) {
+            log('Desktop browser — no app to open, scrolling to store buttons', 'warn');
             document.getElementById('iosBtn').scrollIntoView({ behavior: 'smooth' });
             return;
           }
 
           const storeUrl = isIOS ? CONFIG.iosStore : CONFIG.androidStore;
-          let appOpened = false;
+          log('Target store URL: ' + storeUrl, 'info');
+          log('Attempting deep link: ' + CONFIG.deepLink, 'info');
 
-          // If page goes hidden → app launched successfully
+          let appOpened = false;
+          const attemptTime = Date.now();
+
           const onVisibilityChange = function () {
             if (document.hidden) {
+              const elapsed = Date.now() - attemptTime;
               appOpened = true;
               clearTimeout(storeTimer);
               cleanup();
+              log('SUCCESS: visibilitychange fired (hidden) after ' + elapsed + 'ms — app launched!', 'success');
             }
           };
 
-          // If window loses focus → app launched (works well on Android)
           const onBlur = function () {
+            const elapsed = Date.now() - attemptTime;
             appOpened = true;
             clearTimeout(storeTimer);
             cleanup();
+            log('SUCCESS: window blur fired after ' + elapsed + 'ms — app launched!', 'success');
+          };
+
+          const onPageHide = function () {
+            const elapsed = Date.now() - attemptTime;
+            appOpened = true;
+            clearTimeout(storeTimer);
+            cleanup();
+            log('SUCCESS: pagehide fired after ' + elapsed + 'ms — app launched!', 'success');
           };
 
           function cleanup() {
             document.removeEventListener('visibilitychange', onVisibilityChange);
             window.removeEventListener('blur', onBlur);
+            window.removeEventListener('pagehide', onPageHide);
+            log('Cleanup: all event listeners removed', 'info');
           }
 
           document.addEventListener('visibilitychange', onVisibilityChange);
           window.addEventListener('blur', onBlur);
+          window.addEventListener('pagehide', onPageHide);
 
-          // Attempt deep link — opens app if installed
+          log('Event listeners registered: visibilitychange, blur, pagehide', 'info');
+          log('Firing deep link now → ' + CONFIG.deepLink, 'info');
+
+          // Fire the deep link
           window.location.href = CONFIG.deepLink;
 
-          // After 2s, if still on page and app didn't open → go to store
+          log('Deep link fired — waiting up to 2000ms for app response...', 'info');
+
+          // Fallback timer
           const storeTimer = setTimeout(function () {
+            const elapsed = Date.now() - attemptTime;
             cleanup();
             if (!appOpened && !document.hidden) {
+              log('TIMEOUT after ' + elapsed + 'ms — app did NOT open (not installed or deep link failed)', 'warn');
+              log('Redirecting to store: ' + storeUrl, 'warn');
               window.location.href = storeUrl;
+            } else if (document.hidden) {
+              log('Timer fired but page is hidden — app likely already opened, skipping store redirect', 'info');
+            } else {
+              log('Timer fired — appOpened flag is true, skipping store redirect', 'info');
             }
           }, 2000);
+
+          log('Fallback store timer set for 2000ms', 'info');
         });
       });
     </script>
