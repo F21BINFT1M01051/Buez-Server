@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
       return sendErrorPage(
         res,
         "Link Not Found",
-        "This share link has expired or doesn't exist."
+        "This share link has expired or doesn't exist.",
       );
     }
 
@@ -75,7 +75,7 @@ module.exports = async (req, res) => {
       return sendErrorPage(
         res,
         "Link Deactivated",
-        "This share link has been deactivated."
+        "This share link has been deactivated.",
       );
     }
 
@@ -110,7 +110,7 @@ module.exports = async (req, res) => {
     return sendErrorPage(
       res,
       "Server Error",
-      "An error occurred while processing your request."
+      "An error occurred while processing your request.",
     );
   }
 };
@@ -255,8 +255,8 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       jobDetails.status === "Active"
         ? "#10b981"
         : jobDetails.status === "Completed"
-        ? "#6b7280"
-        : "#f59e0b";
+          ? "#6b7280"
+          : "#f59e0b";
     statusBadge = `<div class="status-badge" style="background-color: ${statusColor};">${jobDetails.status}</div>`;
   }
 
@@ -501,19 +501,17 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       #debugPanel .log-warn  { color: #facc15; }
       #debugPanel .log-error { color: #f87171; }
 
-      #debugToggle {
-        display: block;
-        width: 100%;
-        margin-top: 12px;
-        padding: 8px;
-        background: transparent;
-        border: 1px dashed #d1d5db;
-        border-radius: 8px;
-        color: #9ca3af;
-        font-size: 11px;
-        cursor: pointer;
-        text-align: center;
-      }
+     #debugToggle {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  height: 30px;
+}
       #debugToggle:hover { border-color: #667eea; color: #667eea; }
 
       @media (max-width: 480px) {
@@ -540,7 +538,11 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       ${postedByInfo}
 
       ${
-        description || compensationInfo || locationInfo || taskTypeInfo || workersInfo
+        description ||
+        compensationInfo ||
+        locationInfo ||
+        taskTypeInfo ||
+        workersInfo
           ? `
       <div class="job-info">
         ${description ? `<div class="description">${description}</div>` : ""}
@@ -569,9 +571,9 @@ function generateJobPage(linkData, jobDetails, appConfig) {
       </div>
 
       <!-- Debug toggle button — tap 3x to reveal panel -->
-      <button id="debugToggle">🔍 Debug Info (tap 3×)</button>
+      <button id="debugToggle" aria-hidden="true"></button>
       <div id="debugPanel">
-        <div class="debug-title">📋 Buez Deep Link Debug Log</div>
+        <div class="debug-title">📋 Buez Deep Link Debug Logs</div>
         <div id="debugLog"></div>
       </div>
 
