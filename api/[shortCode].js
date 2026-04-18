@@ -568,6 +568,13 @@ function generateJobPage(linkData, jobDetails, appConfig) {
         </a>
       </div>
 
+      <!-- Debug toggle button — tap 3x to reveal panel -->
+      <button id="debugToggle">🔍 Debug Info (tap 3×)</button>
+      <div id="debugPanel">
+        <div class="debug-title">📋 Buez Deep Link Debug Log</div>
+        <div id="debugLog"></div>
+      </div>
+
       <div class="footer">
         Powered by ${appConfig.appName}<br>
         <span>Open the app to view details and apply</span>
