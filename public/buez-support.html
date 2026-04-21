@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Büez – Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #fafaf8;
+    --accent: #f5c842;
+    --accent2: #ff6b35;
+    --mid: #1c1c1c;
+    --surface: #141414;
+    --border: rgba(255,255,255,0.07);
+    --text-muted: #888;
+    --radius: 16px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 22px;
+    color: var(--white);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-links {
+    display: flex; gap: 8px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 100px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.07); }
+
+  /* HERO */
+  .hero {
+    min-height: 380px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 80px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(245,200,66,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(245,200,66,0.1);
+    border: 1px solid rgba(245,200,66,0.25);
+    color: var(--accent);
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 6px 16px; border-radius: 100px;
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 20px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p {
+    max-width: 520px;
+    color: var(--text-muted);
+    font-size: 17px;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+  .hero-cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent);
+    color: var(--black);
+    font-weight: 700; font-size: 14px;
+    padding: 14px 28px;
+    border-radius: 100px;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(245,200,66,0.25);
+  }
+  .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(245,200,66,0.35); }
+
+  /* QUICK LINKS */
+  .quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto 80px;
+    padding: 0 24px;
+  }
+  .quick-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-decoration: none;
+    color: var(--white);
+    transition: border-color 0.2s, transform 0.2s;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .quick-card:hover { border-color: rgba(245,200,66,0.3); transform: translateY(-3px); }
+  .qc-icon { font-size: 26px; }
+  .qc-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .qc-desc { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+
+  /* SECTION */
+  section {
+    max-width: 860px;
+    margin: 0 auto 80px;
+    padding: 0 24px;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 800; letter-spacing: -1px;
+    margin-bottom: 40px;
+    line-height: 1.15;
+  }
+
+  /* FAQ */
+  .faq-group { margin-bottom: 36px; }
+  .faq-group-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  details:hover { border-color: rgba(255,255,255,0.12); }
+  details[open] { border-color: rgba(245,200,66,0.2); }
+  summary {
+    font-weight: 500; font-size: 15px;
+    padding: 18px 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    list-style: none;
+    gap: 12px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: '+';
+    font-size: 20px; color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.25s;
+    font-weight: 300;
+  }
+  details[open] summary::after { transform: rotate(45deg); color: var(--accent); }
+  .faq-answer {
+    padding: 0 20px 18px;
+    color: var(--text-muted);
+    font-size: 14px; line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  /* CONTACT */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .contact-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+  }
+  .contact-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 16px;
+    margin-bottom: 8px;
+  }
+  .contact-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; line-height: 1.5; }
+  .contact-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent);
+    font-weight: 600; font-size: 14px;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+  .contact-link:hover { border-color: var(--accent); }
+
+  /* PROSE */
+  .prose { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  .prose h3 {
+    font-family: 'Syne', sans-serif;
+    color: var(--white);
+    font-weight: 700; font-size: 18px;
+    margin: 32px 0 12px;
+  }
+  .prose p { margin-bottom: 16px; }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    max-width: 860px;
+    margin: 0 auto 80px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  footer a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+  footer .footer-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 20px;
+    color: var(--white);
+    display: block; margin-bottom: 12px;
+  }
+  footer .footer-logo span { color: var(--accent); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .nav-links { display: none; }
+    .hero h1 { letter-spacing: -1px; }
+  }
+
+  /* SCROLL ANIMATION */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-badge, .hero h1, .hero p, .hero-cta {
+    animation: fadeUp 0.7s ease both;
+  }
+  .hero h1 { animation-delay: 0.1s; }
+  .hero p   { animation-delay: 0.2s; }
+  .hero-cta { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">Bü<span>ez</span></a>
+  <ul class="nav-links">
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#terms">Terms</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🛠 Support Center</div>
+  <h1>We're here to<br><em>help you out.</em></h1>
+  <p>Find answers to common questions about Büez, or reach our support team directly. We respond within 24 hours.</p>
+  <a class="hero-cta" href="mailto:info@buezapp.com">✉ Email Support</a>
+</div>
+
+<!-- QUICK LINKS -->
+<div class="quick-links">
+  <a class="quick-card" href="#faq">
+    <div class="qc-icon">💬</div>
+    <div class="qc-title">FAQs</div>
+    <div class="qc-desc">Answers to the most common questions about Büez features and account.</div>
+  </a>
+  <a class="quick-card" href="#contact">
+    <div class="qc-icon">📬</div>
+    <div class="qc-title">Contact Us</div>
+    <div class="qc-desc">Can't find an answer? Reach our team directly and we'll help you out.</div>
+  </a>
+  <a class="quick-card" href="#privacy">
+    <div class="qc-icon">🔒</div>
+    <div class="qc-title">Privacy Policy</div>
+    <div class="qc-desc">How we collect, use, and protect your personal data.</div>
+  </a>
+  <a class="quick-card" href="#terms">
+    <div class="qc-icon">📄</div>
+    <div class="qc-title">Terms & Conditions</div>
+    <div class="qc-desc">Rules and guidelines for using the Büez platform.</div>
+  </a>
+</div>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="section-label">Help Center</div>
+  <div class="section-title">Frequently Asked<br>Questions</div>
+
+  <!-- General -->
+  <div class="faq-group">
+    <div class="faq-group-title">General Information</div>
+    <details><summary>What is BUEZ?</summary><div class="faq-answer">BUEZ is a community-driven mobile application that connects people who need help with daily tasks to those willing to provide assistance in exchange for compensation or other benefits.</div></details>
+    <details><summary>How does BUEZ work?</summary><div class="faq-answer">Users can post tasks they need help with, and others can browse and accept these requests. The platform facilitates communication and task completion through a secure messaging system.</div></details>
+    <details><summary>Is BUEZ available in my area?</summary><div class="faq-answer">BUEZ shows requests within a 100 km radius of your location. You can see nearby requests and apply a location filter in the app.</div></details>
+    <details><summary>What types of tasks can I post on BUEZ?</summary><div class="faq-answer">You can post various daily tasks including cleaning, moving, gardening and others with a custom title.</div></details>
+  </div>
+
+  <!-- Account & Subscription -->
+  <div class="faq-group">
+    <div class="faq-group-title">Account & Subscription</div>
+    <details><summary>Do I need a subscription to use BUEZ?</summary><div class="faq-answer">Yes, BUEZ operates on a subscription-based model. You need an active subscription to browse and post requests. However, you can register and create an account with a 14-day free trial.</div></details>
+    <details><summary>How much does a BUEZ subscription cost?</summary><div class="faq-answer">BUEZ offers a monthly subscription plan at $12.99. You can start with a 14-day free trial to explore all features.</div></details>
+    <details><summary>Can I cancel my subscription?</summary><div class="faq-answer">Yes, you can cancel your subscription at any time through the app's Settings → Cancel Subscription. You'll maintain access until the end of your billing period.</div></details>
+    <details><summary>What happens if I don't subscribe?</summary><div class="faq-answer">Without an active subscription, you can still create an account but won't be able to browse requests or post your own tasks.</div></details>
+  </div>
+
+  <!-- Posting & Accepting -->
+  <div class="faq-group">
+    <div class="faq-group-title">Posting & Accepting Requests</div>
+    <details><summary>How do I post a request for help?</summary><div class="faq-answer">Go to the 'Post Request' section, select your task type, add a description, location, and compensation details. You can also upload photos to better explain your task.</div></details>
+    <details><summary>What compensation can I offer?</summary><div class="faq-answer">You can offer monetary compensation or other benefits like gift cards, movie tickets, or any mutually agreed-upon reward.</div></details>
+    <details><summary>Can I cancel a request after posting it?</summary><div class="faq-answer">Yes, you can cancel your active requests at any time from the 'My Requests' section.</div></details>
+    <details><summary>How do I accept a task?</summary><div class="faq-answer">Browse available requests in the 'Home' section, view task details, and tap 'Accept Task' if you're interested in helping.</div></details>
+    <details><summary>Can I cancel a task I've accepted?</summary><div class="faq-answer">Yes, you can cancel accepted tasks. We encourage communicating with the requester first to avoid inconvenience.</div></details>
+  </div>
+
+  <!-- Payments -->
+  <div class="faq-group">
+    <div class="faq-group-title">Payments & Compensation</div>
+    <details><summary>How are payments handled?</summary><div class="faq-answer">Compensation is arranged directly between the requester and helper. BUEZ facilitates the connection but doesn't process payments between users.</div></details>
+    <details><summary>When do I get paid for completed tasks?</summary><div class="faq-answer">Payment timing and method are agreed upon between you and the requester. We recommend discussing payment details before starting the task.</div></details>
+    <details><summary>What if there's a dispute about payment?</summary><div class="faq-answer">BUEZ encourages clear communication about compensation before task acceptance. While we don't mediate payment disputes, we provide a review system to maintain community trust.</div></details>
+  </div>
+
+  <!-- Safety -->
+  <div class="faq-group">
+    <div class="faq-group-title">Safety & Community</div>
+    <details><summary>Is BUEZ safe to use?</summary><div class="faq-answer">Yes, we prioritize user safety through review systems and secure messaging. However, we always recommend meeting in public places for first-time interactions.</div></details>
+    <details><summary>Can I review other users?</summary><div class="faq-answer">Yes, after task completion, you can leave reviews and ratings, helping build a trustworthy community.</div></details>
+    <details><summary>What should I do if I have a bad experience?</summary><div class="faq-answer">You can report any concerns through our support system at info@buezapp.com. We take community guidelines seriously and may suspend accounts that violate our terms.</div></details>
+    <details><summary>How does the messaging system work?</summary><div class="faq-answer">Our built-in messaging allows private communication between requesters and helpers, helping discuss task details, compensation, and coordination safely within the app.</div></details>
+  </div>
+
+  <!-- Technical Support -->
+  <div class="faq-group">
+    <div class="faq-group-title">Technical Support</div>
+    <details><summary>How do I reset my password?</summary><div class="faq-answer">Use the 'Forgot Password' feature on the login screen. We'll send a reset link to your registered email address.</div></details>
+    <details><summary>Can I change my profile information?</summary><div class="faq-answer">Yes, you can update your name, biography, and other profile details in the 'Edit Profile' section.</div></details>
+    <details><summary>What if the app isn't working properly?</summary><div class="faq-answer">Try restarting the app or your device. If issues persist, contact our support team at info@buezapp.com.</div></details>
+    <details><summary>How do I manage notifications?</summary><div class="faq-answer">You can customize your notification preferences in the Settings section to control what alerts you receive.</div></details>
+  </div>
+
+  <!-- Free Trial -->
+  <div class="faq-group">
+    <div class="faq-group-title">Free Trial Management</div>
+    <details><summary>How does the 14-day free trial work?</summary><div class="faq-answer">New users get full access to all BUEZ features for 14 days completely free. No credit card required upfront.</div></details>
+    <details><summary>Will I be charged after the free trial?</summary><div class="faq-answer">If you don't cancel before the trial ends, your subscription will automatically continue at the monthly rate of $12.99.</div></details>
+    <details><summary>How do I cancel my subscription before the trial ends?</summary><div class="faq-answer">Go to Settings → Cancel Subscription. You'll maintain access until the end of your current billing period.</div></details>
+    <details><summary>Can I get a refund?</summary><div class="faq-answer">Subscription fees are non-refundable, but you can cancel anytime to prevent future charges.</div></details>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-label">Get in Touch</div>
+  <div class="section-title">Still need help?</div>
+  <div class="contact-grid">
+    <div class="contact-card">
+      <h3>Email Support</h3>
+      <p>Our support team is available to help you with any questions or issues. We typically respond within 24 hours.</p>
+      <a class="contact-link" href="mailto:info@buezapp.com">info@buezapp.com →</a>
+    </div>
+    <div class="contact-card">
+      <h3>Account Issues</h3>
+      <p>Having trouble with your account, password, or subscription? Email us with your registered email address and we'll assist you.</p>
+      <a class="contact-link" href="mailto:info@buezapp.com">Get account help →</a>
+    </div>
+    <div class="contact-card">
+      <h3>Report a Problem</h3>
+      <p>Found a bug or want to report a user? We take community guidelines seriously and will review all reports promptly.</p>
+      <a class="contact-link" href="mailto:info@buezapp.com">Report an issue →</a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PRIVACY POLICY -->
+<section id="privacy">
+  <div class="section-label">Legal</div>
+  <div class="section-title">Privacy Policy</div>
+  <div class="prose">
+    <p>Welcome to our Privacy Policy. Your privacy is critically important to us. This Privacy Policy explains how we collect, use, and protect your personal data when you use our application.</p>
+    <h3>Information We Collect</h3>
+    <p>We collect information that you provide directly to us, such as when you create an account, submit a request, or communicate with customer support. This may include your name, email, phone number, and other relevant details.</p>
+    <h3>How We Use Your Information</h3>
+    <p>We use the collected information to provide, improve, and personalize our services. This includes processing transactions, sending notifications, ensuring security, and analyzing usage trends.</p>
+    <h3>Data Sharing and Security</h3>
+    <p>We do not sell your personal data to third parties. We may share data with trusted service providers for necessary operations, complying with legal obligations, or ensuring user safety. We implement security measures to protect your data.</p>
+    <h3>Your Rights</h3>
+    <p>You have the right to access, update, or delete your personal information. You may also opt-out of certain data collection practices. Contact us if you have any privacy concerns.</p>
+    <h3>Changes to This Policy</h3>
+    <p>We may update this Privacy Policy from time to time. We encourage you to review it periodically for any changes. Continued use of our services after updates constitutes your acceptance of the revised policy.</p>
+    <h3>Contact Us</h3>
+    <p>If you have any questions about this Privacy Policy, please contact us at <a class="contact-link" href="mailto:info@buezapp.com">info@buezapp.com</a>.</p>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- TERMS -->
+<section id="terms">
+  <div class="section-label">Legal</div>
+  <div class="section-title">Terms & Conditions</div>
+  <div class="prose">
+    <p>Welcome to BUEZ, a platform operated by Buez Solution that connects users who need help with daily tasks to individuals willing to provide assistance in exchange for compensation. By accessing or using the BUEZ mobile application or any related services, you agree to be bound by these Terms and Conditions. If you do not agree, you must not use the Service.</p>
+    <h3>1. Eligibility</h3>
+    <p>You must be at least 18 years old to use BUEZ. By registering, you confirm that you have the legal capacity to enter into this agreement. BUEZ reserves the right to suspend or terminate accounts that violate these Terms.</p>
+    <h3>2. User Accounts</h3>
+    <p>You must create an account to access and use the Service. You are responsible for maintaining the confidentiality of your account credentials. BUEZ is not liable for any unauthorized access to your account.</p>
+    <h3>3. Subscription and Payments</h3>
+    <p>BUEZ operates on a subscription-based model. Users must subscribe to access and post requests. Subscription fees are charged monthly and will continue until canceled by the user. Payments are processed through third-party payment providers.</p>
+    <h3>4. Use of the Service</h3>
+    <p>Users may post requests for assistance, specifying compensation and task details. Compensation is handled directly between the requestor and the helper, and BUEZ does not guarantee or process payments between users.</p>
+    <h3>5. Prohibited Activities</h3>
+    <p>Users must not post misleading, harmful, or offensive content, use the platform for illegal activities, or attempt to hack or disrupt the platform's functionality.</p>
+    <h3>6. Limitation of Liability</h3>
+    <p>BUEZ is a facilitator and is not liable for any direct, indirect, incidental, or consequential damages arising from the use of the Service. BUEZ does not guarantee the quality, reliability, or safety of services provided by users.</p>
+    <h3>7. Contact Information</h3>
+    <p>For questions or support, please contact us at <a class="contact-link" href="mailto:info@buezapp.com">info@buezapp.com</a>.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-logo">Bü<span>ez</span></span>
+  <p style="margin-bottom:10px;">BUEZ. All rights reserved. &nbsp;·&nbsp; <a href="mailto:info@buezapp.com">info@buezapp.com</a></p>
+  <p style="font-size:12px; color:#555;">This page serves as the official support URL for the Büez iOS application on the Apple App Store.</p>
+</footer>
+
+</body>
+</html>
