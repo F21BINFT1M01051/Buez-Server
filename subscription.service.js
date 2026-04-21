@@ -17,7 +17,7 @@ async function saveSubscription(req, res, invoice) {
   console.log("id,..............", userId);
 
   try {
-    // 🔁 Fetch full subscription object to get period dates
+    // Fetch full subscription object to get period dates
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
     const now = Math.floor(Date.now() / 1000);

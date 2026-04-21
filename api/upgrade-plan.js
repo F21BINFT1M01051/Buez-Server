@@ -1,9 +1,9 @@
 const stripe = require("../stripe-server");
 
 const YEARLY_PRICE_IDS = {
-  USD: "price_1SVXeiIqafrl1dqSh7sOIies",
-  EUR: "price_1SVXeLIqafrl1dqSBY5r8AC2",
-  CHF: "price_1SVXdwIqafrl1dqSK8QjArLi",
+  USD: "price_1TOi2bIqafrl1dqSNuVbnF7B",
+  EUR: "price_1TOi36Iqafrl1dqS1MFxuB7H",
+  CHF: "price_1TOi1oIqafrl1dqSEn97FnpA",
 };
 
 module.exports = async (req, res) => {

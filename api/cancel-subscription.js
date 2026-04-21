@@ -18,12 +18,12 @@ module.exports = async (req, res) => {
       let canceledSubscription;
 
       if (trialEnd && currentTime < trialEnd) {
-        // 👶 Trial is active: cancel at end of trial (no charge will happen)
+        // Trial is active: cancel at end of trial (no charge will happen)
         canceledSubscription = await stripe.subscriptions.update(subscriptionId, {
           cancel_at: trialEnd,
         });
       } else {
-        // 🧾 Trial is over: cancel at the end of current billing period
+        //  Trial is over: cancel at the end of current billing period
         canceledSubscription = await stripe.subscriptions.update(subscriptionId, {
           cancel_at_period_end: true,
         });

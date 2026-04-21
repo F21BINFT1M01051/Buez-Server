@@ -2,14 +2,14 @@ const stripe = require("../stripe-server");
 
 const PRICE_IDS = {
   monthly: {
-    USD: "price_1SVXQNIqafrl1dqS0dFyP4tG",
-    EUR: "price_1SVXPpIqafrl1dqSFgMfnRFo",
-    CHF: "price_1SVSoTIqafrl1dqSSiWwNtck",
+    USD: "price_1TOhryIqafrl1dqS9HIgtJrM",
+    EUR: "price_1TOhsnIqafrl1dqSLdCgW147",
+    CHF: "price_1TOhovIqafrl1dqSq0bvhFO0",
   },
   yearly: {
-    USD: "price_1SVXeiIqafrl1dqSh7sOIies",
-    EUR: "price_1SVXeLIqafrl1dqSBY5r8AC2",
-    CHF: "price_1SVXdwIqafrl1dqSK8QjArLi",
+    USD: "price_1TOi2bIqafrl1dqSNuVbnF7B",
+    EUR: "price_1TOi36Iqafrl1dqS1MFxuB7H",
+    CHF: "price_1TOi1oIqafrl1dqSEn97FnpA",
   },
 };
 
