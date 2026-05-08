@@ -5,7 +5,7 @@ const APP_CONFIG = {
   urlScheme: "buez",
   iosAppId: "6753902802",
   iosTestFlightUrl: "https://testflight.apple.com/join/ZcR7R163",
-  androidPackage: "com.adamburg.Buez",
+  androidPackage: "com.adamburg.buez",
   appName: "Buez",
   useTestFlight: true,
 };
