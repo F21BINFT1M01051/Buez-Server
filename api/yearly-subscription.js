@@ -1,18 +1,5 @@
 const stripe = require("../stripe-server");
-
-// Map price IDs for monthly and yearly products
-const PRICE_IDS = {
-  monthly: {
-    USD: "price_1TOhryIqafrl1dqS9HIgtJrM",
-    EUR: "price_1TOhsnIqafrl1dqSLdCgW147",
-    CHF: "price_1TOhovIqafrl1dqSq0bvhFO0",
-  },
-  yearly: {
-    USD: "price_1TOi2bIqafrl1dqSNuVbnF7B",
-    EUR: "price_1TOi36Iqafrl1dqS1MFxuB7H",
-    CHF: "price_1TOi1oIqafrl1dqSEn97FnpA",
-  },
-};
+const { PRICE_IDS } = require("../stripe-config");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
@@ -21,7 +8,7 @@ module.exports = async (req, res) => {
     const userCurrency = req.body.currency || "USD"; // default USD
     const planType = req.body.planType; // "monthly" or "yearly"
 
-    const priceId = PRICE_IDS[planType][userCurrency];
+    const priceId = PRICE_IDS[planType]?.[userCurrency];
     if (!priceId) throw new Error("Price ID not found for selected currency");
 
     try {

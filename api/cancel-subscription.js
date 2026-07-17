@@ -9,25 +9,13 @@ module.exports = async (req, res) => {
     }
 
     try {
-      // Retrieve subscription details
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-      const currentTime = Math.floor(Date.now() / 1000); // in seconds
-      const trialEnd = subscription.trial_end;
-
-      let canceledSubscription;
-
-      if (trialEnd && currentTime < trialEnd) {
-        // Trial is active: cancel at end of trial (no charge will happen)
-        canceledSubscription = await stripe.subscriptions.update(subscriptionId, {
-          cancel_at: trialEnd,
-        });
-      } else {
-        //  Trial is over: cancel at the end of current billing period
-        canceledSubscription = await stripe.subscriptions.update(subscriptionId, {
-          cancel_at_period_end: true,
-        });
-      }
+      // Cancel at the end of the current billing period — the user keeps the
+      // access they already paid for (this also naturally ends any remaining
+      // discounted intro cycles; no trial logic exists anymore).
+      const canceledSubscription = await stripe.subscriptions.update(
+        subscriptionId,
+        { cancel_at_period_end: true }
+      );
 
       res.status(200).json({
         success: true,

@@ -20,9 +20,6 @@ async function saveSubscription(req, res, invoice) {
     // Fetch full subscription object to get period dates
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-    const now = Math.floor(Date.now() / 1000);
-    const isTrial = subscription.trial_end && subscription.trial_end > now;
-
     const periodStart = new Date(subscription.current_period_start * 1000);
     const periodEnd = new Date(subscription.current_period_end * 1000);
 
@@ -46,7 +43,6 @@ async function saveSubscription(req, res, invoice) {
       .doc(userId)
       .update({
         isSubscribed: subscription.status === "active",
-        isFreeTrial: isTrial,
         subscriptionStart: periodStart,
         subscriptionEnd: periodEnd,
         subscription: {

@@ -1,17 +1,5 @@
 const stripe = require("../stripe-server");
-
-const PRICE_IDS = {
-  monthly: {
-    USD: "price_1TOhryIqafrl1dqS9HIgtJrM",
-    EUR: "price_1TOhsnIqafrl1dqSLdCgW147",
-    CHF: "price_1TOhovIqafrl1dqSq0bvhFO0",
-  },
-  yearly: {
-    USD: "price_1TOi2bIqafrl1dqSNuVbnF7B",
-    EUR: "price_1TOi36Iqafrl1dqS1MFxuB7H",
-    CHF: "price_1TOi1oIqafrl1dqSEn97FnpA",
-  },
-};
+const { PRICE_IDS, INTRO_COUPON_IDS } = require("../stripe-config");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
@@ -20,7 +8,7 @@ module.exports = async (req, res) => {
     const userCurrency = req.body.currency || "USD"; // default USD
     const planType = req.body.planType; // "monthly" or "yearly"
 
-    const priceId = PRICE_IDS[planType][userCurrency];
+    const priceId = PRICE_IDS[planType]?.[userCurrency];
     if (!priceId) throw new Error("Price ID not found for selected currency");
 
     try {
@@ -43,17 +31,23 @@ module.exports = async (req, res) => {
         },
       });
 
-      //Create subscription with NO trial
+      // Intro pricing: monthly subscriptions get a repeating 3-month coupon
+      // ($4.00 off → $3.90/month for cycles 1-3, then $7.90 automatically).
+      // Stripe removes the discount by itself after the 3rd cycle — no
+      // backend intervention required.
+      const introCouponId =
+        planType === "monthly" ? INTRO_COUPON_IDS[userCurrency] : null;
+
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
         default_payment_method: paymentMethod,
+        ...(introCouponId ? { discounts: [{ coupon: introCouponId }] } : {}),
         expand: ["latest_invoice", "latest_invoice.payment_intent"],
         metadata: { userId },
-       
       });
 
-      console.log("Subscription object:", subscription);
+      console.log("Subscription object:", subscription.id, subscription.status);
 
       res.status(200).json({
         success: true,

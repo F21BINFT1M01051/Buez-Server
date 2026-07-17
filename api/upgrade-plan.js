@@ -1,10 +1,7 @@
 const stripe = require("../stripe-server");
+const { PRICE_IDS } = require("../stripe-config");
 
-const YEARLY_PRICE_IDS = {
-  USD: "price_1TOi2bIqafrl1dqSNuVbnF7B",
-  EUR: "price_1TOi36Iqafrl1dqS1MFxuB7H",
-  CHF: "price_1TOi1oIqafrl1dqSEn97FnpA",
-};
+const YEARLY_PRICE_IDS = PRICE_IDS.yearly;
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
