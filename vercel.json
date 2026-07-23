@@ -54,6 +54,11 @@
       "methods": ["GET", "POST", "OPTIONS"]
     },
     {
+      "src": "/get",
+      "dest": "/api/get.js",
+      "methods": ["GET", "HEAD"]
+    },
+    {
       "src": "/.well-known/apple-app-site-association",
       "dest": "/public/.well-known/apple-app-site-association",
       "headers": {

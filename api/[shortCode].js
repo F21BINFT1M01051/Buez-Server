@@ -1,5 +1,6 @@
 import { admin } from "../firebaseAdmin";
 const { db } = require("../firebaseAdmin");
+const { getDeviceType } = require("../lib/deviceDetect");
 
 const APP_CONFIG = {
   urlScheme: "buez",
@@ -36,13 +37,6 @@ async function trackClick(shortCode, req) {
   } catch (error) {
     console.error("Error tracking click:", error);
   }
-}
-
-function getDeviceType(userAgent) {
-  const ua = userAgent || "";
-  if (/mobile/i.test(ua)) return "mobile";
-  if (/tablet/i.test(ua)) return "tablet";
-  return "desktop";
 }
 
 module.exports = async (req, res) => {

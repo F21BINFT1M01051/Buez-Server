@@ -56,11 +56,14 @@ module.exports = async (req, res) => {
       return res.status(400).json({ success: false, message: "Price ID not found for currency" });
     }
 
-    // Update subscription with new yearly price
+    // Update subscription with new yearly price. The intro coupon (first 3
+    // monthly cycles) only applies to the monthly plan, so any active
+    // discount is removed as part of the upgrade.
     const updatedSub = await stripe.subscriptions.update(currentSubscriptionId, {
       cancel_at_period_end: false,
       items: [{ id: currentSub.items.data[0].id, price: priceId }],
       proration_behavior: "create_prorations",
+      discounts: [],
       expand: ["latest_invoice.payment_intent"],
     });
 
