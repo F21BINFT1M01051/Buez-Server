@@ -1,5 +1,6 @@
 const stripe = require("../stripe-server");
 const { PRICE_IDS } = require("../stripe-config");
+const { getPeriodDates } = require("../stripe-periods");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
@@ -43,16 +44,14 @@ module.exports = async (req, res) => {
 
       console.log("Subscription object:", subscription);
 
+      const { periodStart, periodEnd } = getPeriodDates(subscription);
+
       res.status(200).json({
         success: true,
         subscriptionId: subscription.id,
         status: subscription.status,
-        currentPeriodStart: new Date(
-          subscription.current_period_start * 1000
-        ).toISOString(),
-        currentPeriodEnd: new Date(
-          subscription.current_period_end * 1000
-        ).toISOString(),
+        currentPeriodStart: periodStart ? periodStart.toISOString() : null,
+        currentPeriodEnd: periodEnd ? periodEnd.toISOString() : null,
       });
     } catch (err) {
       console.error("Subscription Error:", err);

@@ -1,11 +1,14 @@
 const stripe = require("../stripe-server");
+const { getPeriodDates } = require("../stripe-periods");
 
 module.exports = async (req, res) => {
   if (req.method === "POST") {
     const { subscriptionId } = req.body;
 
     if (!subscriptionId) {
-      return res.status(400).json({ success: false, message: "Subscription ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Subscription ID is required" });
     }
 
     try {
@@ -17,9 +20,19 @@ module.exports = async (req, res) => {
         { cancel_at_period_end: true }
       );
 
+      // The app reads result.currentPeriodEnd to keep the stored
+      // subscriptionEnd in sync. Send it as an ISO string, matching what the
+      // subscribe/upgrade endpoints return.
+      const { periodStart, periodEnd } = getPeriodDates(canceledSubscription);
+
       res.status(200).json({
         success: true,
         message: "Subscription cancellation scheduled successfully",
+        subscriptionId: canceledSubscription.id,
+        status: canceledSubscription.status,
+        isCancelled: canceledSubscription.cancel_at_period_end === true,
+        currentPeriodStart: periodStart ? periodStart.toISOString() : null,
+        currentPeriodEnd: periodEnd ? periodEnd.toISOString() : null,
         canceledSubscription,
       });
     } catch (err) {

@@ -1,5 +1,6 @@
 const stripe = require("../stripe-server");
 const { PRICE_IDS } = require("../stripe-config");
+const { getPeriodDates } = require("../stripe-periods");
 
 const YEARLY_PRICE_IDS = PRICE_IDS.yearly;
 
@@ -67,13 +68,15 @@ module.exports = async (req, res) => {
       expand: ["latest_invoice.payment_intent"],
     });
 
+    const { periodStart, periodEnd } = getPeriodDates(updatedSub);
+
     res.status(200).json({
       success: true,
       message: "Subscription upgraded successfully",
       subscriptionId: updatedSub.id,
       status: updatedSub.status,
-      currentPeriodStart: new Date(updatedSub.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(updatedSub.current_period_end * 1000).toISOString(),
+      currentPeriodStart: periodStart ? periodStart.toISOString() : null,
+      currentPeriodEnd: periodEnd ? periodEnd.toISOString() : null,
       prorationInvoice: updatedSub.latest_invoice,
     });
   } catch (err) {
